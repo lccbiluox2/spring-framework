@@ -140,10 +140,16 @@ public class DefaultResourceLoader implements ResourceLoader {
 	}
 
 
+	/**
+	 * //这里是三种识别location加载出Resource的方式。
+	 * @param location
+	 * @return
+	 */
 	@Override
 	public Resource getResource(String location) {
 		Assert.notNull(location, "Location must not be null");
 
+		//1.先看有没有自定义的ProtocolResolver，如果有则先根据自定义的ProtocolResolver解析location得到Resource
 		for (ProtocolResolver protocolResolver : getProtocolResolvers()) {
 			Resource resource = protocolResolver.resolve(location, this);
 			if (resource != null) {
@@ -151,6 +157,7 @@ public class DefaultResourceLoader implements ResourceLoader {
 			}
 		}
 
+		//2.根据路径是否匹配"/"或"classpath:"来解析得到ClassPathResource
 		if (location.startsWith("/")) {
 			return getResourceByPath(location);
 		}
@@ -160,11 +167,13 @@ public class DefaultResourceLoader implements ResourceLoader {
 		else {
 			try {
 				// Try to parse the location as a URL...
+				//默认传入的location是一个URL路径，加载得到一个UrlResource
 				URL url = new URL(location);
 				return (ResourceUtils.isFileURL(url) ? new FileUrlResource(url) : new UrlResource(url));
 			}
 			catch (MalformedURLException ex) {
 				// No URL -> resolve as resource path.
+				// 如果以上三种情况都不满足，则按照“/”来处理
 				return getResourceByPath(location);
 			}
 		}

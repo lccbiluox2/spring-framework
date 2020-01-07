@@ -276,15 +276,20 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 
 	@Override
 	public Resource[] getResources(String locationPattern) throws IOException {
+		//首先判断资源路径是否是类路径下的资源（以 “classpath*:” 开头）
 		Assert.notNull(locationPattern, "Location pattern must not be null");
 		if (locationPattern.startsWith(CLASSPATH_ALL_URL_PREFIX)) {
 			// a class path resource (multiple resources for same name possible)
+			// 通过 getPathMatcher 方法取得 PathMatcher ，默认只有 AntPathMatcher 一个实现类
+			// 通过 isPattern 方法判断路径是否允许存在多个匹配的资源（路径中包含 “*” 或 “?”）
 			if (getPathMatcher().isPattern(locationPattern.substring(CLASSPATH_ALL_URL_PREFIX.length()))) {
 				// a class path resource pattern
+				//找到所有匹配路径（ant 风格）的资源
 				return findPathMatchingResources(locationPattern);
 			}
 			else {
 				// all class path resources with the given name
+				//通过类加载器查找
 				return findAllClassPathResources(locationPattern.substring(CLASSPATH_ALL_URL_PREFIX.length()));
 			}
 		}
@@ -293,12 +298,14 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 			// and on Tomcat only after the "*/" separator for its "war:" protocol.
 			int prefixEnd = (locationPattern.startsWith("war:") ? locationPattern.indexOf("*/") + 1 :
 					locationPattern.indexOf(':') + 1);
+			// 判断资源路径 ":" 之后的部分是否包含 "*" 或 "?"
 			if (getPathMatcher().isPattern(locationPattern.substring(prefixEnd))) {
 				// a file pattern
 				return findPathMatchingResources(locationPattern);
 			}
 			else {
 				// a single resource with the given name
+				// 若不存在表示是单个资源，则通过从构造函数传入的 ResourceLoader 取得
 				return new Resource[] {getResourceLoader().getResource(locationPattern)};
 			}
 		}

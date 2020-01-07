@@ -61,6 +61,8 @@ public interface ApplicationContext extends EnvironmentCapable, ListableBeanFact
 	/**
 	 * Return the unique id of this application context.
 	 * @return the unique id of the context, or {@code null} if none
+	 *
+	 * 得到这个ApplicationContext的ID
 	 */
 	@Nullable
 	String getId();
@@ -68,6 +70,8 @@ public interface ApplicationContext extends EnvironmentCapable, ListableBeanFact
 	/**
 	 * Return a name for the deployed application that this context belongs to.
 	 * @return a name for the deployed application, or the empty String by default
+	 *
+	 * 返回这个ApplicationContext所属的Application的名字
 	 */
 	String getApplicationName();
 
