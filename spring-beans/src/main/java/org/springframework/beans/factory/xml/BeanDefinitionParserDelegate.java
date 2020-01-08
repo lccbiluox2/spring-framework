@@ -409,19 +409,26 @@ public class BeanDefinitionParserDelegate {
 	 * Parses the supplied {@code <bean>} element. May return {@code null}
 	 * if there were errors during parse. Errors are reported to the
 	 * {@link org.springframework.beans.factory.parsing.ProblemReporter}.
+	 *
+	 * 解析Bean定义资源文件中的<Bean>元素，这个方法中主要处理<Bean>元素的id，name和别名属性
 	 */
 	@Nullable
 	public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
+		//获取<Bean>元素中的id属性值
 		String id = ele.getAttribute(ID_ATTRIBUTE);
+		//获取<Bean>元素中的name属性值
 		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
 
+		//获取<Bean>元素中的alias属性值
 		List<String> aliases = new ArrayList<>();
+		//将<Bean>元素中的所有name属性值存放到别名中
 		if (StringUtils.hasLength(nameAttr)) {
 			String[] nameArr = StringUtils.tokenizeToStringArray(nameAttr, MULTI_VALUE_ATTRIBUTE_DELIMITERS);
 			aliases.addAll(Arrays.asList(nameArr));
 		}
 
 		String beanName = id;
+		//如果<Bean>元素中没有配置id属性时，将别名中的第一个值赋值给beanName
 		if (!StringUtils.hasText(beanName) && !aliases.isEmpty()) {
 			beanName = aliases.remove(0);
 			if (logger.isTraceEnabled()) {
@@ -430,23 +437,31 @@ public class BeanDefinitionParserDelegate {
 			}
 		}
 
+		//检查<Bean>元素所配置的id或者name的唯一性，containingBean标识<Bean>
+		//元素中是否包含子<Bean>元素
 		if (containingBean == null) {
+			//检查<Bean>元素所配置的id、name或者别名是否重复
 			checkNameUniqueness(beanName, aliases, ele);
 		}
 
+		//详细对<Bean>元素中配置的Bean定义进行解析的地方
 		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
 		if (beanDefinition != null) {
 			if (!StringUtils.hasText(beanName)) {
 				try {
 					if (containingBean != null) {
+						//如果<Bean>元素中没有配置id、别名或者name，且没有包含子元素
+						//<Bean>元素，为解析的Bean生成一个唯一beanName并注册
 						beanName = BeanDefinitionReaderUtils.generateBeanName(
 								beanDefinition, this.readerContext.getRegistry(), true);
 					}
 					else {
+						//如果<Bean>元素中没有配置id、别名或者name，且包含了子元素<Bean>元素，为解析的Bean使用别名向IOC容器注册
 						beanName = this.readerContext.generateBeanName(beanDefinition);
 						// Register an alias for the plain bean class name, if still possible,
 						// if the generator returned the class name plus a suffix.
 						// This is expected for Spring 1.2/2.0 backwards compatibility.
+						//为解析的Bean使用别名注册时，为了向后兼容 Spring1.2/2.0，给别名添加类名后缀
 						String beanClassName = beanDefinition.getBeanClassName();
 						if (beanClassName != null &&
 								beanName.startsWith(beanClassName) && beanName.length() > beanClassName.length() &&
@@ -467,7 +482,7 @@ public class BeanDefinitionParserDelegate {
 			String[] aliasesArray = StringUtils.toStringArray(aliases);
 			return new BeanDefinitionHolder(beanDefinition, beanName, aliasesArray);
 		}
-
+		//当解析出错时，返回null
 		return null;
 	}
 
