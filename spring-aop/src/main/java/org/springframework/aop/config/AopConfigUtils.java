@@ -96,7 +96,7 @@ public abstract class AopConfigUtils {
 	@Nullable
 	public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(
 			BeanDefinitionRegistry registry, @Nullable Object source) {
-
+		// 主要就是为了注册AnnotationAwareAspectJAutoProxyCreator类
 		return registerOrEscalateApcAsRequired(AnnotationAwareAspectJAutoProxyCreator.class, registry, source);
 	}
 
@@ -132,6 +132,7 @@ public abstract class AopConfigUtils {
 			return null;
 		}
 
+		// 类似于我们在使用BeanFactory.getBean()时候的操作，生成一个RootBeanDefinition，然后放入map中
 		RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
 		beanDefinition.setSource(source);
 		beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);

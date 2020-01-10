@@ -950,15 +950,20 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		clearResourceCaches();
 
 		// Initialize lifecycle processor for this context.
+		// LifecycleProcessor实例初始化，
+		// LifecycleProcessor是所有Lifecycle实现类的管家，里面包含了对Lifecycle的各种操作.
 		initLifecycleProcessor();
 
 		// Propagate refresh to lifecycle processor first.
+		// 通过LifecycleProcessor来执行Lifecycle实现类的start方法
 		getLifecycleProcessor().onRefresh();
 
 		// Publish the final event.
+		// 向监听器发送广播，消息类型是ContextRefreshedEvent
 		publishEvent(new ContextRefreshedEvent(this));
 
 		// Participate in LiveBeansView MBean, if active.
+		// 如果配置了MBeanServer，就完成在MBeanServer上的注册
 		LiveBeansView.registerApplicationContext(this);
 	}
 
