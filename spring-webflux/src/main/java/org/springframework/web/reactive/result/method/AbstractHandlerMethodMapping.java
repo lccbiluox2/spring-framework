@@ -202,11 +202,13 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 
 		if (handlerType != null) {
 			final Class<?> userType = ClassUtils.getUserClass(handlerType);
+			// 从处理类(@Controller)中获取处理方法(@RequestMapping)
 			Map<Method, T> methods = MethodIntrospector.selectMethods(userType,
 					(MethodIntrospector.MetadataLookup<T>) method -> getMappingForMethod(method, userType));
 			if (logger.isTraceEnabled()) {
 				logger.trace(formatMappings(userType, methods));
 			}
+			// 注册方法
 			methods.forEach((key, mapping) -> {
 				Method invocableMethod = AopUtils.selectInvocableMethod(key, userType);
 				registerHandlerMethod(handler, invocableMethod, mapping);
@@ -406,6 +408,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 * @param handlerType the handler type, possibly a sub-type of the method's
 	 * declaring class
 	 * @return the mapping, or {@code null} if the method is not mapped
+	 *  // 返回RequestMappingInfo，包含@RequestMapping的标签信息
 	 */
 	@Nullable
 	protected abstract T getMappingForMethod(Method method, Class<?> handlerType);

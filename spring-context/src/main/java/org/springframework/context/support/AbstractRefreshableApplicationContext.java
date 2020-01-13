@@ -122,8 +122,11 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 */
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
+		//如果beanFactory已经存在，就销毁context管理的所有bean，并关闭beanFactory
 		if (hasBeanFactory()) {
+			//其实就是调用一些集合的clear方法，解除对一些实例的引用，参考DefaultSingletonBeanRegistry.destroySingletons方法
 			destroyBeans();
+			//关闭当前的beanFactory，其实就是将成员变量beanFactory设置为null
 			closeBeanFactory();
 		}
 		try {
@@ -223,9 +226,11 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 */
 	protected void customizeBeanFactory(DefaultListableBeanFactory beanFactory) {
 		if (this.allowBeanDefinitionOverriding != null) {
+			//allowBeanDefinitionOverriding表示是否允许注册一个同名的类来覆盖原有类(注意是类，不是实例)
 			beanFactory.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
 		}
 		if (this.allowCircularReferences != null) {
+			//allowCircularReferences表示是否运行多个类之间的循环引用
 			beanFactory.setAllowCircularReferences(this.allowCircularReferences);
 		}
 	}

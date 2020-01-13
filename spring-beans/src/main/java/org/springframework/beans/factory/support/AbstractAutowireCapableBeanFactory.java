@@ -1166,20 +1166,23 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	protected BeanWrapper createBeanInstance(String beanName, RootBeanDefinition mbd, @Nullable Object[] args) {
 		// Make sure bean class is actually resolved at this point.
-		//检查确认Bean是可实例化的
+		//检查确认Bean是可实例化的，确保此时beanClass已经被解析
 		Class<?> beanClass = resolveBeanClass(mbd, beanName);
 
 		//使用工厂方法对Bean进行实例化
+		// beanClass不为空,且beanClass的修饰符为不为public,且不允许访问非公共构造函数和方法,则抛出异常
 		if (beanClass != null && !Modifier.isPublic(beanClass.getModifiers()) && !mbd.isNonPublicAccessAllowed()) {
 			throw new BeanCreationException(mbd.getResourceDescription(), beanName,
 					"Bean class isn't public, and non-public access not allowed: " + beanClass.getName());
 		}
 
+		// ① Spring5.0新增的实例化策略,如果设置了该策略,将会覆盖构造方法和工厂方法实例化策略
 		Supplier<?> instanceSupplier = mbd.getInstanceSupplier();
 		if (instanceSupplier != null) {
 			return obtainFromSupplier(instanceSupplier, beanName);
 		}
 
+		// ② 如果有工厂方法的话,则使用工厂方法实例化bean
 		if (mbd.getFactoryMethodName() != null) {
 			//调用工厂方法实例化
 			return instantiateUsingFactoryMethod(beanName, mbd, args);
@@ -1187,6 +1190,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Shortcut when re-creating the same bean...
 		//使用容器的自动装配方法进行实例化
+		// ③ 当创建一个相同的bean时,使用之间保存的快照
+		// 这里可能会有一个疑问,什么时候会创建相同的bean呢?
+		// 		③-->① 单例模式: Spring不会缓存该模式的实例,那么对于单例模式的bean,什么时候会用到该实例化策略呢?
+		//                 我们知道对于IoC容器除了可以索取bean之外,还能销毁bean,当我们调用xmlBeanFactory.destroyBean(myBeanName,myBeanInstance),
+		//				   销毁bean时,容器是不会销毁已经解析的构造函数快照的,如果再次调用xmlBeanFactory.getBean(myBeanName)时,就会使用该策略了.
+		// 		③-->② 原型模式: 对于该模式的理解就简单了,IoC容器不会缓存原型模式bean的实例,当我们第二次向容器索取同一个bean时,就会使用该策略了.
 		boolean resolved = false;
 		boolean autowireNecessary = false;
 		if (args == null) {
@@ -1197,7 +1206,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				}
 			}
 		}
+		// 如果该bean已经被解析过
 		if (resolved) {
+			// 使用已经解析过的构造函数实例化
 			if (autowireNecessary) {
 				//配置了自动装配属性，使用容器的自动装配实例化
 				//容器的自动装配是根据参数类型匹配Bean的构造方法
@@ -1210,7 +1221,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Candidate constructors for autowiring?
-		//使用Bean的构造方法进行实例化
+		//使用Bean的构造方法进行实例化， ④ 确定需要使用的构造函数
 		Constructor<?>[] ctors = determineConstructorsFromBeanPostProcessors(beanClass, beanName);
 		if (ctors != null || mbd.getResolvedAutowireMode() == AUTOWIRE_CONSTRUCTOR ||
 				mbd.hasConstructorArgumentValues() || !ObjectUtils.isEmpty(args)) {
@@ -1225,7 +1236,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// No special handling: simply use no-arg constructor.
-		//使用默认的无参构造方法实例化
+		//使用默认的无参构造方法实例化，⑤ 无任何的特殊处理,则使用默认的无参构造函数实例化bean
 		return instantiateBean(beanName, mbd);
 	}
 

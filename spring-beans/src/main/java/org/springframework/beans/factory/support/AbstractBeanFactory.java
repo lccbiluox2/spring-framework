@@ -272,6 +272,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
+		// 3、如果未能从缓存中获取到bean,则要重新创建bean
 		else {
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.

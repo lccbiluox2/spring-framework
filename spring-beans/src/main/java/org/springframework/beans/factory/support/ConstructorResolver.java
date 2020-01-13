@@ -124,11 +124,14 @@ class ConstructorResolver {
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
 
+		// 1、 判断有无显式指定参数,如果有则优先使用,如xmlBeanFactory.getBean("cat", "美美",3);
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		}
+		// 1、 判断有无显式指定参数,如果有则优先使用,如xmlBeanFactory.getBean("cat", "美美",3);
 		else {
 			Object[] argsToResolve = null;
+			// 3、 优先尝试从缓存中获取,spring对参数的解析过程是比较复杂也耗时的,所以这里先尝试从缓存中获取已经解析过的构造函数参数
 			synchronized (mbd.constructorArgumentLock) {
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
@@ -139,11 +142,13 @@ class ConstructorResolver {
 					}
 				}
 			}
+			// 缓存中存在,则解析构造函数参数类型
 			if (argsToResolve != null) {
 				argsToUse = resolvePreparedArguments(beanName, mbd, bw, constructorToUse, argsToResolve, true);
 			}
 		}
 
+		// 4、 缓存中不存在,则需要解析构造函数参数,以确定使用哪一个构造函数来进行实例化
 		if (constructorToUse == null || argsToUse == null) {
 			// Take specified constructors, if any.
 			Constructor<?>[] candidates = chosenCtors;
@@ -178,6 +183,7 @@ class ConstructorResolver {
 					mbd.getResolvedAutowireMode() == AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR);
 			ConstructorArgumentValues resolvedValues = null;
 
+			// 这里定义了一个变量,来记录最小的构造函数参数个数,其作用可以参见下面解释...
 			int minNrOfArgs;
 			if (explicitArgs != null) {
 				minNrOfArgs = explicitArgs.length;
@@ -383,12 +389,17 @@ class ConstructorResolver {
 		Class<?> factoryClass;
 		boolean isStatic;
 
+		// 1、判断是实例工厂还是静态工厂方法
+		// 获取factoryBeanName，即配置文件中的工厂方法
+		// 注意：静态工厂方法是没有factoryBeanName的，所以如果factoryBeanName不为null，
+		// 则一定是实例工厂方法，否则就是静态工厂方法
 		String factoryBeanName = mbd.getFactoryBeanName();
 		if (factoryBeanName != null) {
 			if (factoryBeanName.equals(beanName)) {
 				throw new BeanDefinitionStoreException(mbd.getResourceDescription(), beanName,
 						"factory-bean reference points back to the same bean definition");
 			}
+			// 获取factoryBeanName实例
 			factoryBean = this.beanFactory.getBean(factoryBeanName);
 			if (mbd.isSingleton() && this.beanFactory.containsSingleton(beanName)) {
 				throw new ImplicitlyAppearedSingletonException();
@@ -411,9 +422,11 @@ class ConstructorResolver {
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
 
+		// 2、判断有无显式指定参数,如果有则优先使用,如xmlBeanFactory.getBean("cat", "美美",3);
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		}
+		// 3、从缓存中加载工厂方法和构造函数参数
 		else {
 			Object[] argsToResolve = null;
 			synchronized (mbd.constructorArgumentLock) {
@@ -431,14 +444,22 @@ class ConstructorResolver {
 			}
 		}
 
+		// 4、未能从缓存中加载工厂方法和构造函数参数，
+		// 则解析并确定应该使用哪一个工厂方法实例化，并解析构造函数参数
 		if (factoryMethodToUse == null || argsToUse == null) {
 			// Need to determine the factory method...
 			// Try all methods with this name to see if they match the given arguments.
 			factoryClass = ClassUtils.getUserClass(factoryClass);
 
+			// 4.1、获取factoryClass中所有的方法
 			Method[] rawCandidates = getCandidateMethods(factoryClass, mbd);
 			List<Method> candidateList = new ArrayList<>();
+			// 4.2、从获取到的所有方法中筛选出可能符合条件的方法
 			for (Method candidate : rawCandidates) {
+				// isStatic-->是之前解析过的，如果当前工厂方法是静态工厂方法，那么isStatic-->true;
+				// 如果当前工厂方法是实例工厂方法，那么isStatic-->false
+				// 通过Modifier.isStatic(candidate.getModifiers()) == isStatic判断，过滤掉一部分不符合条件的方法
+				// mbd.isFactoryMethod(candidate)-->判断是否工厂方法
 				if (Modifier.isStatic(candidate.getModifiers()) == isStatic && mbd.isFactoryMethod(candidate)) {
 					candidateList.add(candidate);
 				}
@@ -458,6 +479,7 @@ class ConstructorResolver {
 				}
 			}
 
+			// 4.3、对候选工厂方法按照方法的参数个数进行倒序排序
 			Method[] candidates = candidateList.toArray(new Method[0]);
 			AutowireUtils.sortFactoryMethods(candidates);
 
@@ -466,31 +488,39 @@ class ConstructorResolver {
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Method> ambiguousFactoryMethods = null;
 
+			// 4.4、定义最小工厂方法参数个数，以备循环解析候选方法使用
 			int minNrOfArgs;
 			if (explicitArgs != null) {
+				// 如指定参数不为空，则使用指定参数个数作为最小方法参数个数
 				minNrOfArgs = explicitArgs.length;
 			}
 			else {
 				// We don't have arguments passed in programmatically, so we need to resolve the
 				// arguments specified in the constructor arguments held in the bean definition.
+				// 尝试从BeanDefinition中加载构造函数信息，以确定最小方法参数个数
 				if (mbd.hasConstructorArgumentValues()) {
 					ConstructorArgumentValues cargs = mbd.getConstructorArgumentValues();
 					resolvedValues = new ConstructorArgumentValues();
 					minNrOfArgs = resolveConstructorArguments(beanName, mbd, bw, cargs, resolvedValues);
 				}
 				else {
+					// 以上均未能获取，则将最小方法参数个数置为0
 					minNrOfArgs = 0;
 				}
 			}
 
+			// 5.循环候选工厂方法，并确定最终使用的工厂方法
 			LinkedList<UnsatisfiedDependencyException> causes = null;
 
 			for (Method candidate : candidates) {
 				Class<?>[] paramTypes = candidate.getParameterTypes();
 
+				// 如果候选方法的参数个数大于之前定义的最小方法参数个数，则继续循环
+				// 如果候选方法的参数个数为1，而定义的最小方法参数个数为2，那么肯定不会使用该方法作为工厂方法
 				if (paramTypes.length >= minNrOfArgs) {
 					ArgumentsHolder argsHolder;
 
+					// 5.1 、指定方法参数不为空，则优先使用指定方法参数
 					if (explicitArgs != null) {
 						// Explicit arguments given -> arguments length must match exactly.
 						if (paramTypes.length != explicitArgs.length) {
@@ -498,6 +528,7 @@ class ConstructorResolver {
 						}
 						argsHolder = new ArgumentsHolder(explicitArgs);
 					}
+					// 5.2、否则，解析方法参数
 					else {
 						// Resolved constructor arguments: type conversion and/or autowiring necessary.
 						try {
