@@ -54,6 +54,10 @@ import org.springframework.lang.Nullable;
  * @since 16 April 2001
  * @see HierarchicalBeanFactory
  * @see BeanFactoryUtils
+ *
+ * 扩展了BeanFactory接口,提供了对bean的枚举能力,
+ * 即可以返回bean的实例集合,而不用像BeanFactory只能返回单个bean的实例
+ * 注意:如果存在父容器的话该接口不会考虑父容器中的bean,只会返回当前容器中的bean
  */
 public interface ListableBeanFactory extends BeanFactory {
 

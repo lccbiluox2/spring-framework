@@ -77,11 +77,15 @@ public class ClassPathResource extends AbstractFileResolvingResource {
 	 */
 	public ClassPathResource(String path, @Nullable ClassLoader classLoader) {
 		Assert.notNull(path, "Path must not be null");
+		//规范路径
 		String pathToUse = StringUtils.cleanPath(path);
+		//如果路径以"/"开头,则截取开头"/"以后字符做为路径
 		if (pathToUse.startsWith("/")) {
 			pathToUse = pathToUse.substring(1);
 		}
+		//将处理后的路径赋给this.path
 		this.path = pathToUse;
+		//获取classLoader并赋给this.classLoader
 		this.classLoader = (classLoader != null ? classLoader : ClassUtils.getDefaultClassLoader());
 	}
 
@@ -167,16 +171,20 @@ public class ClassPathResource extends AbstractFileResolvingResource {
 	@Override
 	public InputStream getInputStream() throws IOException {
 		InputStream is;
+		// ①如果类对象不为null,则使用类对象信息的getResourceAsStream获取输入流
 		if (this.clazz != null) {
 			is = this.clazz.getResourceAsStream(this.path);
 		}
+		// ②如果类加载器不为null,则使用类加载器的getResourceAsStream获取输入流
 		else if (this.classLoader != null) {
 			is = this.classLoader.getResourceAsStream(this.path);
 		}
 		else {
+			// ③否则使用ClassLoader类的getSystemResourceAsStream方法获取输入流
 			is = ClassLoader.getSystemResourceAsStream(this.path);
 		}
 		if (is == null) {
+			//以上三种方法都无法获取到输入流的话,那么说明文件不存在,抛出异常
 			throw new FileNotFoundException(getDescription() + " cannot be opened because it does not exist");
 		}
 		return is;

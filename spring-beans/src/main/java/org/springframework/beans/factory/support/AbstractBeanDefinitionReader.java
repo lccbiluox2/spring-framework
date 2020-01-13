@@ -86,6 +86,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		this.registry = registry;
 
 		// Determine ResourceLoader to use.
+		// 1、确定ResourceLoader使用。
 		if (this.registry instanceof ResourceLoader) {
 			this.resourceLoader = (ResourceLoader) this.registry;
 		}
@@ -94,6 +95,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		}
 
 		// Inherit Environment if possible
+		// 2、如果环境可继承则继承registry的环境,否则重新创建环境
 		if (this.registry instanceof EnvironmentCapable) {
 			this.environment = ((EnvironmentCapable) this.registry).getEnvironment();
 		}

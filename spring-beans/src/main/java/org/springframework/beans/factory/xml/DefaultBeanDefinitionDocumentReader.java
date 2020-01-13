@@ -125,9 +125,14 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		// the new (child) delegate with a reference to the parent for fallback purposes,
 		// then ultimately reset this.delegate back to its original (parent) reference.
 		// this behavior emulates a stack of delegates without actually necessitating one.
+
+		// 1、创建BeanDefinitionParserDelegate对象，用来解析Element元素
 		BeanDefinitionParserDelegate parent = this.delegate;
 		this.delegate = createDelegate(getReaderContext(), root, parent);
 
+		// 2、解析并验证profile节点，如果配置了profile属性，则验证当前环境是否激活了对应的profile节点，
+		// 用于多开发环境配置，该方式在开发中已不多见。
+		// 例如：System.setProperty("spring.profiles.active", "dev");
 		if (this.delegate.isDefaultNamespace(root)) {
 			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
 			if (StringUtils.hasText(profileSpec)) {
@@ -145,8 +150,11 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			}
 		}
 
+		// 3、解析前置处理，空的模板方法
 		preProcessXml(root);
+		// 4、解析并注册BeanDefinition
 		parseBeanDefinitions(root, this.delegate);
+		// 5、解析后置处理，空的模板方法
 		postProcessXml(root);
 
 		this.delegate = parent;

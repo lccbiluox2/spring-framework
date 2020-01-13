@@ -104,20 +104,28 @@ public abstract class BeanDefinitionReaderUtils {
 			BeanDefinition definition, BeanDefinitionRegistry registry, boolean isInnerBean)
 			throws BeanDefinitionStoreException {
 
+		// 1、获取bean的className
 		String generatedBeanName = definition.getBeanClassName();
+
+		// 2、如果generatedBeanName为null，
+		// 则判断其是否有parent属性或者factory-bean并生成generatedBeanName
 		if (generatedBeanName == null) {
+			// parent属性不为空
 			if (definition.getParentName() != null) {
 				generatedBeanName = definition.getParentName() + "$child";
 			}
+			// factory-bean属性不为空
 			else if (definition.getFactoryBeanName() != null) {
 				generatedBeanName = definition.getFactoryBeanName() + "$created";
 			}
 		}
+		// 3、如果上述方法均无法生成generatedBeanName，则抛出异常
 		if (!StringUtils.hasText(generatedBeanName)) {
 			throw new BeanDefinitionStoreException("Unnamed bean definition specifies neither " +
 					"'class' nor 'parent' nor 'factory-bean' - can't generate bean name");
 		}
 
+		// 4、判断是否内部bean，并根据生成的generatedBeanName，拼接最终的beanName返回
 		String id = generatedBeanName;
 		if (isInnerBean) {
 			// Inner bean: generate identity hashcode suffix.
