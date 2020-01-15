@@ -63,6 +63,8 @@ public class ProxyConfig implements Serializable {
 
 	/**
 	 * Return whether to proxy the target class directly as well as any interfaces.
+	 * 是否配置了proxy-target-class为true
+	 * 该条件取值于ProxyConfig类的proxyTargetClass属性。此属性标记是否直接对目标类进行代理，而不是通过接口产生代理。
 	 */
 	public boolean isProxyTargetClass() {
 		return this.proxyTargetClass;
@@ -85,6 +87,10 @@ public class ProxyConfig implements Serializable {
 
 	/**
 	 * Return whether proxies should perform aggressive optimizations.
+	 *
+	 * 判断通过CGLIB创建的代理是否使用了优化策略,该条件取值于ProxyConfig类的optimize属性。此属性标记是否对代理进行优化。
+	 * 启动优化通常意味着在代理对象被创建后，增强的修改将不会生效，因此默认值为false。如果exposeProxy设置为true，即使optimize
+	 * 为true也会被忽略。
 	 */
 	public boolean isOptimize() {
 		return this.optimize;

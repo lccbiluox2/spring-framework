@@ -457,6 +457,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	}
 
 	/**
+	 * 为给定的bean创建代理
+	 *
 	 * Create an AOP proxy for the given bean.
 	 * @param beanClass the class of the bean
 	 * @param beanName the name of the bean
@@ -470,32 +472,43 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
 			@Nullable Object[] specificInterceptors, TargetSource targetSource) {
 
+		// 1、当前beanFactory是ConfigurableListableBeanFactory类型，则尝试暴露当前bean的target class
 		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
 			AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
 		}
 
+		// 2、创建ProxyFactory并配置
 		ProxyFactory proxyFactory = new ProxyFactory();
 		proxyFactory.copyFrom(this);
 
+		// 是否直接代理目标类以及接口
 		if (!proxyFactory.isProxyTargetClass()) {
+			// 确定给定bean是否应该用它的目标类而不是接口进行代理
 			if (shouldProxyTargetClass(beanClass, beanName)) {
 				proxyFactory.setProxyTargetClass(true);
 			}
+			// 检查给定bean类上的接口，如果合适的话，将它们应用到ProxyFactory。即添加代理接口
 			else {
 				evaluateProxyInterfaces(beanClass, proxyFactory);
 			}
 		}
 
+		// 3、确定给定bean的advisors，包括特定的拦截器和公共拦截器，是否适配Advisor接口。
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+		// 设置增强
 		proxyFactory.addAdvisors(advisors);
+		// 设置代理目标
 		proxyFactory.setTargetSource(targetSource);
+		// 定制proxyFactory（空的模板方法，可在子类中自己定制）
 		customizeProxyFactory(proxyFactory);
 
+		// 锁定proxyFactory
 		proxyFactory.setFrozen(this.freezeProxy);
 		if (advisorsPreFiltered()) {
 			proxyFactory.setPreFiltered(true);
 		}
 
+		// 4、创建代理
 		return proxyFactory.getProxy(getProxyClassLoader());
 	}
 
