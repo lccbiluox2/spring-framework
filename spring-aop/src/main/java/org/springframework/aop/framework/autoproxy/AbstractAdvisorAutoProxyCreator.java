@@ -68,15 +68,24 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	}
 
 
+	/**
+	 * 获取指定bean的增强
+	 * @param beanClass the class of the bean to advise
+	 * @param beanName the name of the bean
+	 * @param targetSource
+	 * @return
+	 */
 	@Override
 	@Nullable
 	protected Object[] getAdvicesAndAdvisorsForBean(
 			Class<?> beanClass, String beanName, @Nullable TargetSource targetSource) {
 
 		List<Advisor> advisors = findEligibleAdvisors(beanClass, beanName);
+		// 如果获取到的增强是个空的集合,则返回DO_NOT_PROXY-->空数组
 		if (advisors.isEmpty()) {
 			return DO_NOT_PROXY;
 		}
+		// 将获取到的增强转换为数组并返回
 		return advisors.toArray();
 	}
 
@@ -89,10 +98,15 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 * @see #findCandidateAdvisors
 	 * @see #sortAdvisors
 	 * @see #extendAdvisors
+	 *
+	 * 为当前bean获取所有需要自动代理的增强
 	 */
 	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+		// 1、查找所有候选增强
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+		// 2、从所有增强集合中查找适合当前bean的增强
 		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+		// 3、在eligibleAdvisors集合首位加入ExposeInvocationInterceptor增强
 		extendAdvisors(eligibleAdvisors);
 		if (!eligibleAdvisors.isEmpty()) {
 			eligibleAdvisors = sortAdvisors(eligibleAdvisors);
@@ -117,6 +131,8 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 * @param beanName the target's bean name
 	 * @return the List of applicable Advisors
 	 * @see ProxyCreationContext#getCurrentProxiedBeanName()
+	 *
+	 * 从给定的增强中找出可以应用到当前指定bean的增强
 	 */
 	protected List<Advisor> findAdvisorsThatCanApply(
 			List<Advisor> candidateAdvisors, Class<?> beanClass, String beanName) {

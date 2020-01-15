@@ -339,7 +339,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
 			try {
 				// Register the final decorated instance.
-				//向Spring IOC容器注册解析得到的Bean定义，这是Bean定义向IOC容器注册的入口
+				//向Spring IOC容器注册解析得到的Bean定义，这是Bean定义向IOC容器注册的入口,执行注册
 				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
 			}
 			catch (BeanDefinitionStoreException ex) {

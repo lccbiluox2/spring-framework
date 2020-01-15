@@ -244,11 +244,17 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) {
 		Object cacheKey = getCacheKey(beanClass, beanName);
 
+		// 1、预处理判断
 		if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
+			// 判断该类是否应被处理过
 			if (this.advisedBeans.containsKey(cacheKey)) {
 				return null;
 			}
+			// 判断beanClass是否需要被代理
+			// isInfrastructureClass-->判断beanClass是否为AOP基础类例如Advice(增强)，Advisors(切面),Pointcut(切点)
+			// shouldSkip-->判断beanClass是否指定了不需要代理
 			if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
+				// 缓存找到的切面类信息
 				this.advisedBeans.put(cacheKey, Boolean.FALSE);
 				return null;
 			}
@@ -257,6 +263,17 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		// Create proxy here if we have a custom TargetSource.
 		// Suppresses unnecessary default instantiation of the target bean:
 		// The TargetSource will handle target instances in a custom fashion.
+		// 2、如果有自定义TargetSource的话，则在此创建代理
+		/**
+		 *  自定义TargetSource示例:
+		 * 	<bean class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+		 * 		<property name="customTargetSourceCreators">
+		 * 			<list>
+		 * 				<bean class="org.springframework.aop.framework.autoproxy.target.LazyInitTargetSourceCreator"/>
+		 * 			</list>
+		 * 		</property>
+		 * 	</bean>
+		 */
 		TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
 		if (targetSource != null) {
 			if (StringUtils.hasLength(beanName)) {
@@ -290,12 +307,16 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * Create a proxy with the configured interceptors if the bean is
 	 * identified as one to proxy by the subclass.
 	 * @see #getAdvicesAndAdvisorsForBean
+	 *
+	 * 如果bean被子类标识为要代理的bean，则使用配置的拦截器创建代理。
 	 */
 	@Override
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
 		if (bean != null) {
+			// 为beanName和beanClass构建缓存key
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
 			if (this.earlyProxyReferences.remove(cacheKey) != bean) {
+				// 包装bean
 				return wrapIfNecessary(bean, beanName, cacheKey);
 			}
 		}
@@ -330,8 +351,11 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * @param beanName the name of the bean
 	 * @param cacheKey the cache key for metadata access
 	 * @return a proxy wrapping the bean, or the raw bean instance as-is
+	 *
+	 * 如果需要则包装该bean,例如该bean可以被代理
 	 */
 	protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+		// 1、如果已经处理过或者不需要创建代理，则返回
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
@@ -344,8 +368,11 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 
 		// Create proxy if we have advice.
+		// 2、创建代理
+		// 2.1 根据指定的bean获取所有的适合该bean的增强
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
+			// 2.2 为指定bean创建代理
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
 			Object proxy = createProxy(
 					bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
@@ -353,6 +380,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			return proxy;
 		}
 
+		// 3、缓存
 		this.advisedBeans.put(cacheKey, Boolean.FALSE);
 		return bean;
 	}
