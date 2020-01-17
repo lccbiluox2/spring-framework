@@ -67,7 +67,7 @@ public interface PlatformTransactionManager {
 	 * @see TransactionDefinition#getTimeout
 	 * @see TransactionDefinition#isReadOnly
 	 *
-	 * 获取事务 ， 它还会设置数据属性
+	 * 获取事务 ， 它还会设置数据属性 根据指定的传播行为，返回当前活动的事务或创建新事务。
 	 */
 	TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
 			throws TransactionException;

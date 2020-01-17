@@ -42,6 +42,8 @@ public interface TransactionStatus extends SavepointManager, Flushable {
 	 * Return whether the present transaction is new; otherwise participating
 	 * in an existing transaction, or potentially not running in an actual
 	 * transaction in the first place.
+	 *
+	 * 返回当前事务是否为新事务（否则将参与到现有事务中，或者可能一开始就不在实际事务中运行）
 	 */
 	boolean isNewTransaction();
 
@@ -55,6 +57,8 @@ public interface TransactionStatus extends SavepointManager, Flushable {
 	 * @see #createSavepoint()
 	 * @see #rollbackToSavepoint(Object)
 	 * @see #releaseSavepoint(Object)
+	 *
+	 * 返回该事务是否在内部携带保存点，也就是说，已经创建为基于保存点的嵌套事务。
 	 */
 	boolean hasSavepoint();
 
@@ -68,12 +72,16 @@ public interface TransactionStatus extends SavepointManager, Flushable {
 	 * where the actual commit/rollback decision is made by the container.
 	 * @see org.springframework.transaction.support.TransactionCallback#doInTransaction
 	 * @see org.springframework.transaction.interceptor.TransactionAttribute#rollbackOn
+	 *
+	 * 设置事务仅回滚。
 	 */
 	void setRollbackOnly();
 
 	/**
 	 * Return whether the transaction has been marked as rollback-only
 	 * (either by the application or by the transaction infrastructure).
+	 *
+	 * 返回事务是否已标记为仅回滚
 	 */
 	boolean isRollbackOnly();
 
@@ -84,6 +92,8 @@ public interface TransactionStatus extends SavepointManager, Flushable {
 	 * transaction manager does not have a flush concept. A flush signal may
 	 * get applied to the primary resource or to transaction synchronizations,
 	 * depending on the underlying resource.
+	 *
+	 * 将会话刷新到数据存储区
 	 */
 	@Override
 	void flush();
@@ -93,6 +103,8 @@ public interface TransactionStatus extends SavepointManager, Flushable {
 	 * whether it has already been committed or rolled back.
 	 * @see PlatformTransactionManager#commit
 	 * @see PlatformTransactionManager#rollback
+	 *
+	 * 返回事物是否已经完成，无论提交或者回滚。
 	 */
 	boolean isCompleted();
 

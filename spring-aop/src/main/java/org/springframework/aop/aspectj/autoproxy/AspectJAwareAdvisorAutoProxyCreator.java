@@ -67,11 +67,13 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 	@Override
 	@SuppressWarnings("unchecked")
 	protected List<Advisor> sortAdvisors(List<Advisor> advisors) {
+		// 1.创建PartiallyComparableAdvisorHolder集合并将所有的增强加入到该集合中
 		List<PartiallyComparableAdvisorHolder> partiallyComparableAdvisors = new ArrayList<>(advisors.size());
 		for (Advisor element : advisors) {
 			partiallyComparableAdvisors.add(
 					new PartiallyComparableAdvisorHolder(element, DEFAULT_PRECEDENCE_COMPARATOR));
 		}
+		// 2.执行排序并返回结果
 		List<PartiallyComparableAdvisorHolder> sorted = PartialOrder.sort(partiallyComparableAdvisors);
 		if (sorted != null) {
 			List<Advisor> result = new ArrayList<>(advisors.size());
@@ -95,10 +97,19 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 		AspectJProxyUtils.makeAdvisorChainAspectJCapableIfNecessary(candidateAdvisors);
 	}
 
+	/**
+	 * 如果给定的bean不应该被认为是后处理器自动代理的，子类应该重写这个方法以返回true。
+	 * @param beanClass the class of the bean
+	 * @param beanName the name of the bean
+	 * @return
+	 */
 	@Override
 	protected boolean shouldSkip(Class<?> beanClass, String beanName) {
 		// TODO: Consider optimization by caching the list of the aspect names
+		// 1、查找所有候选增强
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+		// 2、循环判断所有的增强,如果增强是AspectJPointcutAdvisor的实例
+		//    并且其名称与当前bean的名称相同,则返回true,即该bean无需代理
 		for (Advisor advisor : candidateAdvisors) {
 			if (advisor instanceof AspectJPointcutAdvisor &&
 					((AspectJPointcutAdvisor) advisor).getAspectName().equals(beanName)) {

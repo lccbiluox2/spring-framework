@@ -49,6 +49,8 @@ public interface SavepointManager {
 	 * @throws TransactionException if the savepoint could not be created,
 	 * for example because the transaction is not in an appropriate state
 	 * @see java.sql.Connection#setSavepoint
+	 *
+	 * 创建一个新的保存点。
 	 */
 	Object createSavepoint() throws TransactionException;
 
@@ -62,6 +64,9 @@ public interface SavepointManager {
 	 * transaction does not support savepoints
 	 * @throws TransactionException if the rollback failed
 	 * @see java.sql.Connection#rollback(java.sql.Savepoint)
+	 * // 回滚到给定的保存点。
+	 * 	// 注意：调用此方法回滚到给定的保存点之后，不会自动释放保存点，
+	 * 	// 可以通过调用releaseSavepoint方法释放保存点。
 	 */
 	void rollbackToSavepoint(Object savepoint) throws TransactionException;
 
@@ -76,6 +81,8 @@ public interface SavepointManager {
 	 * transaction does not support savepoints
 	 * @throws TransactionException if the release failed
 	 * @see java.sql.Connection#releaseSavepoint
+	 *
+	 * 显式释放给定的保存点。（大多数事务管理器将在事务完成时自动释放保存点）
 	 */
 	void releaseSavepoint(Object savepoint) throws TransactionException;
 
