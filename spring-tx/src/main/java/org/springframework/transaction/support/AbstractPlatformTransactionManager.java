@@ -425,32 +425,41 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 			TransactionDefinition definition, Object transaction, boolean debugEnabled)
 			throws TransactionException {
 
+		// 1.PROPAGATION_NEVER --> 以非事物方式执行，如果当前存在事物，则抛出异常。
 		if (definition.getPropagationBehavior() == TransactionDefinition.PROPAGATION_NEVER) {
 			throw new IllegalTransactionStateException(
 					"Existing transaction found for transaction marked with propagation 'never'");
 		}
 
+		// 2.以非事物方式执行，如果当前存在事物，则挂起当前事物。
 		if (definition.getPropagationBehavior() == TransactionDefinition.PROPAGATION_NOT_SUPPORTED) {
 			if (debugEnabled) {
 				logger.debug("Suspending current transaction");
 			}
+			// 重点:挂起已有事物
 			Object suspendedResources = suspend(transaction);
 			boolean newSynchronization = (getTransactionSynchronization() == SYNCHRONIZATION_ALWAYS);
+			// 创建新事物,注意:transaction参数为null,所以这里创建的不是一个真正的事物
 			return prepareTransactionStatus(
 					definition, null, false, newSynchronization, debugEnabled, suspendedResources);
 		}
 
+		//3.新建事物，如果当前已经存在事物，则挂起当前事物。
 		if (definition.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW) {
 			if (debugEnabled) {
 				logger.debug("Suspending current transaction, creating new transaction with name [" +
 						definition.getName() + "]");
 			}
+			// 挂起已有事物
 			SuspendedResourcesHolder suspendedResources = suspend(transaction);
 			try {
 				boolean newSynchronization = (getTransactionSynchronization() != SYNCHRONIZATION_NEVER);
+				// 创建事物
 				DefaultTransactionStatus status = newTransactionStatus(
 						definition, transaction, true, newSynchronization, debugEnabled, suspendedResources);
+				// 开启事物
 				doBegin(transaction, definition);
+				// 初始化事物同步属性
 				prepareSynchronization(status, definition);
 				return status;
 			}
@@ -460,7 +469,9 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 			}
 		}
 
+		// 4.如果当前存在事物，则在嵌套事物内执行；如果当前没有事物，则与PROPAGATION_REQUIRED传播特性相同
 		if (definition.getPropagationBehavior() == TransactionDefinition.PROPAGATION_NESTED) {
+			// 如果不允许嵌套事物,则抛出异常
 			if (!isNestedTransactionAllowed()) {
 				throw new NestedTransactionNotSupportedException(
 						"Transaction manager does not allow nested transactions by default - " +
@@ -469,12 +480,22 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 			if (debugEnabled) {
 				logger.debug("Creating nested transaction with name [" + definition.getName() + "]");
 			}
+			/**
+			 * 下面对JtaTransactionManager和AbstractPlatformTransactionManager分别进行处理
+			 */
+
+			// useSavepointForNestedTransaction(),是否为嵌套事务使用保存点
+			// 1.对于JtaTransactionManager-->返回false
+			// 2.对于AbstractPlatformTransactionManager-->返回true
 			if (useSavepointForNestedTransaction()) {
 				// Create savepoint within existing Spring-managed transaction,
 				// through the SavepointManager API implemented by TransactionStatus.
 				// Usually uses JDBC 3.0 savepoints. Never activates Spring synchronization.
+				// 创建保存点在现有spring管理事务,通过TransactionStatus SavepointManager API实现。
+				// 通常使用JDBC 3.0保存点。永远不要激活Spring同步。
 				DefaultTransactionStatus status =
 						prepareTransactionStatus(definition, transaction, false, false, debugEnabled, null);
+				// 创建保存点
 				status.createAndHoldSavepoint();
 				return status;
 			}
@@ -482,6 +503,8 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 				// Nested transaction through nested begin and commit/rollback calls.
 				// Usually only for JTA: Spring synchronization might get activated here
 				// in case of a pre-existing JTA transaction.
+				// 通过嵌套的开始,提交调用,及回滚调用进行嵌套事务。
+				// 只对JTA有效,如果已经存在JTA事务，这里可能会激活Spring同步。
 				boolean newSynchronization = (getTransactionSynchronization() != SYNCHRONIZATION_NEVER);
 				DefaultTransactionStatus status = newTransactionStatus(
 						definition, transaction, true, newSynchronization, debugEnabled, null);
@@ -492,10 +515,19 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 		}
 
 		// Assumably PROPAGATION_SUPPORTS or PROPAGATION_REQUIRED.
+		// 处理PROPAGATION_SUPPORTS和PROPAGATION_REQUIRED两种传播特性
+		// PROPAGATION_REQUIRED --> 如果当前没有事物，则新建一个事物；如果已经存在一个事物，则加入到这个事物中。
+		// PROPAGATION_SUPPORTS --> 支持当前事物，如果当前没有事物，则以非事物方式执行。
 		if (debugEnabled) {
 			logger.debug("Participating in existing transaction");
 		}
+		// 对于PROPAGATION_SUPPORTS和PROPAGATION_REQUIRED
+		// 新事物参与已有事物时,是否验证已有事物.此属性值默认为false;
+		// 如开启将验证新事物和已有事物的隔离级别和事物只读属性是否相同
 		if (isValidateExistingTransaction()) {
+			// 验证事物隔离级别
+			// 如果当前事物的隔离级别不为默认隔离级别,则比较当前事物隔离级别与已有事物隔离级别,
+			// 如不同,则抛出事物隔离级别不兼容异常
 			if (definition.getIsolationLevel() != TransactionDefinition.ISOLATION_DEFAULT) {
 				Integer currentIsolationLevel = TransactionSynchronizationManager.getCurrentTransactionIsolationLevel();
 				if (currentIsolationLevel == null || currentIsolationLevel != definition.getIsolationLevel()) {
@@ -507,6 +539,8 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 									"(unknown)"));
 				}
 			}
+			// 验证事物只读属性
+			// 如果当前事物可写,但是已有的事物是只读,则抛出异常
 			if (!definition.isReadOnly()) {
 				if (TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
 					throw new IllegalTransactionStateException("Participating transaction with definition [" +
@@ -598,21 +632,36 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 */
 	@Nullable
 	protected final SuspendedResourcesHolder suspend(@Nullable Object transaction) throws TransactionException {
+		// 1.如果存在事物同步回调接口
 		if (TransactionSynchronizationManager.isSynchronizationActive()) {
+			// 1.1 挂起事务同步回调接口
 			List<TransactionSynchronization> suspendedSynchronizations = doSuspendSynchronization();
 			try {
+				// 挂起事物
 				Object suspendedResources = null;
 				if (transaction != null) {
 					suspendedResources = doSuspend(transaction);
 				}
+				// 获取已有事物名称
 				String name = TransactionSynchronizationManager.getCurrentTransactionName();
+				// 清空已有事物名称
 				TransactionSynchronizationManager.setCurrentTransactionName(null);
+				// 获取已有事物的readOnly属性值
 				boolean readOnly = TransactionSynchronizationManager.isCurrentTransactionReadOnly();
+				// 将已有事物的readOnly属性值设置为false
 				TransactionSynchronizationManager.setCurrentTransactionReadOnly(false);
+				// 获取已有事物数据库事物隔离级别
 				Integer isolationLevel = TransactionSynchronizationManager.getCurrentTransactionIsolationLevel();
+				// 清空已有事物数据库事物隔离级别
 				TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(null);
+				// 获取已有事物激活标识
 				boolean wasActive = TransactionSynchronizationManager.isActualTransactionActive();
+				// 将当前事物激活标识设置为false
 				TransactionSynchronizationManager.setActualTransactionActive(false);
+				// 返回SuspendedResourcesHolder
+				/**
+				 * 将上面获取到的一系列事物属性,重新封装至SuspendedResourcesHolder对象,并返回
+				 */
 				return new SuspendedResourcesHolder(
 						suspendedResources, suspendedSynchronizations, name, readOnly, isolationLevel, wasActive);
 			}
@@ -622,11 +671,15 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 				throw ex;
 			}
 		}
+		// 不存在事物同步回调接口,且当前事物不为空
 		else if (transaction != null) {
 			// Transaction active but no synchronization active.
+			// 事物已经被激活,但是没有事物同步回调,则直接挂起当前事物即可
 			Object suspendedResources = doSuspend(transaction);
+			// 返回挂起的事物资源
 			return new SuspendedResourcesHolder(suspendedResources);
 		}
+		// 处理没有事物的情况...
 		else {
 			// Neither transaction nor synchronization active.
 			return null;
@@ -649,9 +702,11 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 		if (resourcesHolder != null) {
 			Object suspendedResources = resourcesHolder.suspendedResources;
 			if (suspendedResources != null) {
+				// 恢复挂起资源
 				doResume(transaction, suspendedResources);
 			}
 			List<TransactionSynchronization> suspendedSynchronizations = resourcesHolder.suspendedSynchronizations;
+			// 恢复挂起的事物同步回调接口
 			if (suspendedSynchronizations != null) {
 				TransactionSynchronizationManager.setActualTransactionActive(resourcesHolder.wasActive);
 				TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(resourcesHolder.isolationLevel);
@@ -684,11 +739,14 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 * @return the List of suspended TransactionSynchronization objects
 	 */
 	private List<TransactionSynchronization> doSuspendSynchronization() {
+		// 1.获取当前线程的所有事物同步回调
 		List<TransactionSynchronization> suspendedSynchronizations =
 				TransactionSynchronizationManager.getSynchronizations();
+		// 2.循环并挂起所有同步回调接口
 		for (TransactionSynchronization synchronization : suspendedSynchronizations) {
 			synchronization.suspend();
 		}
+		// 3.清除资源
 		TransactionSynchronizationManager.clearSynchronization();
 		return suspendedSynchronizations;
 	}
