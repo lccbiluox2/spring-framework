@@ -278,34 +278,45 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 	protected Object invokeWithinTransaction(Method method, @Nullable Class<?> targetClass,
 			final InvocationCallback invocation) throws Throwable {
 
+		// 1.准备工作
 		// If the transaction attribute is null, the method is non-transactional.
 		TransactionAttributeSource tas = getTransactionAttributeSource();
+		// 获取事物属性
 		final TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
+		// 获取事物管理器
 		final PlatformTransactionManager tm = determineTransactionManager(txAttr);
+		// 获取目标类全限定类名+连接点方法名 例如:com.lyc.cn.v2.day09.AccountServiceImpl.save
 		final String joinpointIdentification = methodIdentification(method, targetClass, txAttr);
 
+		// 2.处理声明式事物
 		if (txAttr == null || !(tm instanceof CallbackPreferringPlatformTransactionManager)) {
 			// Standard transaction demarcation with getTransaction and commit/rollback calls.
+			// 2.2 创建事物（如果需要的话的，根据事物传播特性而定）
 			TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdentification);
 
 			Object retVal;
 			try {
 				// This is an around advice: Invoke the next interceptor in the chain.
 				// This will normally result in a target object being invoked.
+				// 2.3 继续调用方法拦截器链,这里一般将会调用目标类的方法,如:com.lyc.cn.v2.day09.AccountServiceImpl.save方法
 				retVal = invocation.proceedWithInvocation();
 			}
 			catch (Throwable ex) {
 				// target invocation exception
+				// 2.4 如果目标类方法抛出异常,则在此处理,例如:事物回滚
 				completeTransactionAfterThrowing(txInfo, ex);
 				throw ex;
 			}
 			finally {
+				// 2.5 清除上一步创建的事物信息
 				cleanupTransactionInfo(txInfo);
 			}
+			// 2.6 调用成功完成后执行，但不是在异常被处理后执行。如果我们不创建事务，就什么也不做。
 			commitTransactionAfterReturning(txInfo);
 			return retVal;
 		}
 
+		// 3.处理编程式事物
 		else {
 			final ThrowableHolder throwableHolder = new ThrowableHolder();
 
@@ -460,6 +471,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 			@Nullable TransactionAttribute txAttr, final String joinpointIdentification) {
 
 		// If no name specified, apply method identification as transaction name.
+		// 1. 如果没有指定名称，则应用方法标识作为事务名称。
 		if (txAttr != null && txAttr.getName() == null) {
 			txAttr = new DelegatingTransactionAttribute(txAttr) {
 				@Override
@@ -469,9 +481,11 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 			};
 		}
 
+		// 2.获取TransactionStatus对象
 		TransactionStatus status = null;
 		if (txAttr != null) {
 			if (tm != null) {
+				// 重点: 根据指定的传播行为，返回当前活动的事务或创建新事务。
 				status = tm.getTransaction(txAttr);
 			}
 			else {
@@ -481,6 +495,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 				}
 			}
 		}
+		// 3.创建TransactionInfo对象
 		return prepareTransactionInfo(tm, txAttr, joinpointIdentification, status);
 	}
 
@@ -496,7 +511,9 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 			@Nullable TransactionAttribute txAttr, String joinpointIdentification,
 			@Nullable TransactionStatus status) {
 
+		// 创建TransactionInfo对象
 		TransactionInfo txInfo = new TransactionInfo(tm, txAttr, joinpointIdentification);
+		// 如果事物标签不为空,则将TransactionStatus对象赋予TransactionInfo
 		if (txAttr != null) {
 			// We need a transaction for this method...
 			if (logger.isTraceEnabled()) {
@@ -517,6 +534,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 		// We always bind the TransactionInfo to the thread, even if we didn't create
 		// a new transaction here. This guarantees that the TransactionInfo stack
 		// will be managed correctly even if no transaction was created by this aspect.
+		// 这里:不论是否开启了新的事物,都将TransactionInfo绑定到当前线程,以保证TransactionInfo堆栈的完整性。
 		txInfo.bindToThread();
 		return txInfo;
 	}
@@ -536,6 +554,8 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 	}
 
 	/**
+	 * 处理异常以完成事物,基于配置该事物可能回滚也可能提交
+	 *
 	 * Handle a throwable, completing the transaction.
 	 * We may commit or roll back, depending on the configuration.
 	 * @param txInfo information about the current transaction
@@ -547,8 +567,20 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 				logger.trace("Completing transaction for [" + txInfo.getJoinpointIdentification() +
 						"] after exception: " + ex);
 			}
+			// 1.回滚
+			/**
+			 * txInfo.transactionAttribute.rollbackOn(ex)判断回滚的条件:
+			 *
+			 * 1. 如果自定了RollbackRuleAttribute列表,如果当前异常匹配到了RollbackRuleAttribute其中的条目,则回滚
+			 *    例如:可以通过rollbackFor指定触发回滚的异常@Transactional(propagation = Propagation.REQUIRED,rollbackFor = Exception.class)
+			 *
+			 * 2. 否则如果异常是RuntimeException或者Error的类型,则回滚
+			 *
+			 * 3. 其他的异常是不会回滚的,这里要注意一下...
+			 */
 			if (txInfo.transactionAttribute != null && txInfo.transactionAttribute.rollbackOn(ex)) {
 				try {
+					// 执行回滚
 					txInfo.getTransactionManager().rollback(txInfo.getTransactionStatus());
 				}
 				catch (TransactionSystemException ex2) {
@@ -561,6 +593,8 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 					throw ex2;
 				}
 			}
+			// 2.如果未能满足回滚条件,则有可能会提交事物,也有可能会回滚事物
+			// 注意:如果TransactionStatus.isRollbackOnly()为true,则仍然会执行回滚
 			else {
 				// We don't roll back on this exception.
 				// Will still roll back if TransactionStatus.isRollbackOnly() is true.
