@@ -249,13 +249,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			@Nullable final Object[] args, boolean typeCheckOnly) throws BeansException {
 
 		//根据指定的名称获取被管理Bean的名称，剥离指定名称中对容器的相关依赖,如果指定的是别名，将别名转换为规范的Bean名称
+		// 获取一个 标准的 beanName，处理两种情况：一个是前面说的 FactoryBean(前面带 ‘&’)，  如果指定的是别名，将别名转换为规范的Bean名称
 		final String beanName = transformedBeanName(name);
 		Object bean;
 
 		// Eagerly check singleton cache for manually registered singletons.
 		//先从缓存中取是否已经有被创建过的单态类型的Bean,对于单例模式的Bean整个IOC容器中只创建一次，不需要重复创建
 		Object sharedInstance = getSingleton(beanName);
-		//IOC容器创建单例模式Bean实例对象
+		//IOC容器创建单例模式Bean实例对象,但是如果 args 不为空的时候，那么不管是否该bean已经存在都会重新创建
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
 				//如果指定名称的Bean在容器中已有单例模式的Bean被创建,直接返回已经创建的Bean
@@ -269,6 +270,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 			//获取给定Bean的实例对象，主要是完成FactoryBean的相关处理,注意：BeanFactory是管理容器中Bean的工厂，而FactoryBean是
 			//创建创建对象的工厂Bean，两者之间有区别
+			// 下面这个方法：如果是普通 Bean 的话，直接返回 sharedInstance，如果是 FactoryBean 的话，返回它创建的那个实例对象，
+			// 调用FactoryBean的getObject 方法,这里就不展开了
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
@@ -288,7 +291,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			//当前容器的父级容器存在，且当前容器中不存在指定名称的Bean
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
-				//解析指定Bean名称的原始名称
+				//解析指定Bean名称的原始名称,如果当前容器不存在这个 BeanDefinition，看看父容器中有没有
 				String nameToLookup = originalBeanName(name);
 				if (parentBeanFactory instanceof AbstractBeanFactory) {
 					return ((AbstractBeanFactory) parentBeanFactory).doGetBean(
@@ -315,6 +318,12 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				markBeanAsCreated(beanName);
 			}
 
+			/*
+			 * 到这里的话，要准备创建 Bean 了，
+			 * 对于 singleton 的 Bean 来说，容器中还没创建过此 Bean；
+			 * 对于 prototype 的 Bean 来说，本来就是要创建一个新的 Bean。
+			 */
+
 			try {
 				//根据指定Bean名称获取其父级的Bean定义,主要解决Bean继承时子类合并父类公共属性问题
 				final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
@@ -322,6 +331,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 				// Guarantee initialization of beans that the current bean depends on.
 				//获取当前Bean所有依赖Bean的名称
+				// 先初始化依赖的所有 Bean
+				// 检查是不是有循环依赖，这里的循环依赖和我们前面说的循环依赖又不一样,这里的依赖指的是 depends-on 中定义的依赖
+				// depends-on用来表示一个Bean的实例化依靠另一个Bean先实例化。
+				// 如果在一个bean A上定义了depend-on B那么就表示：A 实例化前先实例化 B。
 				String[] dependsOn = mbd.getDependsOn();
 				//如果当前Bean有依赖Bean
 				if (dependsOn != null) {
@@ -344,7 +357,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 
 				// Create bean instance.
-				//创建单例模式Bean的实例对象
+				//创建单例模式Bean的实例对象,如果是 singleton scope 的，创建 singleton 的实例
 				if (mbd.isSingleton()) {
 					//这里使用了一个匿名内部类，创建Bean实例对象，并且注册给所依赖的对象
 					sharedInstance = getSingleton(beanName, () -> {
@@ -365,7 +378,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				}
 
-				//IOC容器创建原型模式Bean实例对象
+				//IOC容器创建原型模式Bean实例对象,如果是 prototype scope 的，创建 prototype 的实例
 				else if (mbd.isPrototype()) {
 					// It's a prototype -> create a new instance.
 					//原型模式(Prototype)是每次都会创建一个新的对象
@@ -384,7 +397,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					bean = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
 				}
 
-				//要创建的Bean既不是单例模式，也不是原型模式，则根据Bean定义资源中,配置的生命周期范围，选择实例化Bean的合适方法，
+				// 要创建的Bean既不是单例模式，也不是原型模式，则根据Bean定义资源中,配置的生命周期范围，选择实例化Bean的合适方法，
 				// 这种在Web应用程序中比较常用，如：request、session、application等生命周期
 				else {
 					String scopeName = mbd.getScope();
@@ -401,6 +414,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 								return createBean(beanName, mbd, args);
 							}
 							finally {
+								//回调afterPrototypeCreation方法
 								afterPrototypeCreation(beanName);
 							}
 						});

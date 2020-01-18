@@ -169,11 +169,13 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 			// 1、处理equals方法，如果接口中没有定义equals而在实现类中覆盖了equals方法，那么该equals方法不会被增强
 			if (!this.equalsDefined && AopUtils.isEqualsMethod(method)) {
 				// The target does not implement the equals(Object) method itself.
+				// 代理equals 方法
 				return equals(args[0]);
 			}
 			// 2、处理hashCode方法，如果接口中没有定义hashCode而在实现类中覆盖了hashCode方法，那么该hashCode方法不会被增强
 			else if (!this.hashCodeDefined && AopUtils.isHashCodeMethod(method)) {
 				// The target does not implement the hashCode() method itself.
+				// 代理hashCode 方法
 				return hashCode();
 			}
 			// 3、如果目标对象是DecoratingProxy类型，则返回目标对象的最终对象类型
@@ -212,6 +214,7 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 			// 6、获取当前方法的拦截器链，并执行调用
 			List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
 
+			// chain 是空的，说明不需要被增强
 			// 检测是否拦截器链是否为空，如果拦截器链为空，那么直接通过反射调用目标对象的方法，避免创建MethodInvocation
 			// Check whether we have any advice. If we don't, we can fallback on direct
 			// reflective invocation of the target, and avoid creating a MethodInvocation.
@@ -228,7 +231,7 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 				MethodInvocation invocation =
 						new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
 				// Proceed to the joinpoint through the interceptor chain.
-				// 调用拦截器链
+				// 调用拦截器链,执行增强，并调用方法
 				retVal = invocation.proceed();
 			}
 

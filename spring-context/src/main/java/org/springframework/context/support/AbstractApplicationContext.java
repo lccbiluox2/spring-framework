@@ -531,26 +531,32 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
 				// 子类扩展用，可以设置bean的后置处理器（bean在实例化之后这些后置处理器会执行）
+				//  允许在context子类中对BeanFactory进行post-processing。
+				// 允许在上下文子类中对Bean工厂进行后处理
+				// 可以在这里进行 硬编码形式的 BeanFactoryPostProcessor 调用 addBeanFactoryPostProcessor
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
 				// 执行beanFactory后置处理器（有别于bean后置处理器处理bean实例，beanFactory后置处理器处理bean定义）
+				// 激活各种BeanFactory处理器 BeanFactoryPostProcessors是在实例化之前执行
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
 				// 将所有的bean的后置处理器排好序，但不会马上用，bean实例化之后会用到
+				// 注册 拦截Bean创建 的Bean处理器，这里只是注册，真正地调用在getBean的时候  BeanPostProcessors实在init方法前后执行 doCreateBean方法中的 实例化方法中执行
+				// BeanPostProcessor执行位置：doCreateBean --> initializeBean --> applyBeanPostProcessorsBeforeInitialization 和 applyBeanPostProcessorsAfterInitialization
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
-				// 初始化国际化服务
+				// 初始化国际化服务,为上下文初始化Message源，（比如国际化处理） 这里没有过多深入
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
-				// 创建事件广播器
+				// 创建事件广播器,初始化应用消息广播，并放入 applicationEventMulticaster bean中
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
-				// 空方法，留给子类自己实现的，在实例化bean之前做一些ApplicationContext相关的操作
+				// 空方法，留给子类自己实现的，在实例化bean之前做一些ApplicationContext相关的操作,留给子类来初始化其它的bean
 				onRefresh();
 
 				// Check for listener beans and register them.

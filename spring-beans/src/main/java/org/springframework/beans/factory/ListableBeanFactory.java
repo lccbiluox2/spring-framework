@@ -69,6 +69,8 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * @param beanName the name of the bean to look for
 	 * @return if this bean factory contains a bean definition with the given name
 	 * @see #containsBean
+	 *
+	 * 对于给定的名字是否含有BeanDefinition
 	 */
 	boolean containsBeanDefinition(String beanName);
 
@@ -78,6 +80,8 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * and ignores any singleton beans that have been registered by
 	 * other means than bean definitions.
 	 * @return the number of beans defined in the factory
+	 *
+	 * 返回工厂的BeanDefinition总数
 	 */
 	int getBeanDefinitionCount();
 
@@ -88,6 +92,8 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * other means than bean definitions.
 	 * @return the names of all beans defined in this factory,
 	 * or an empty array if none defined
+	 *
+	 * 返回工厂中所有Bean的名字
 	 */
 	String[] getBeanDefinitionNames();
 
@@ -117,6 +123,8 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * @see #isTypeMatch(String, ResolvableType)
 	 * @see FactoryBean#getObjectType
 	 * @see BeanFactoryUtils#beanNamesForTypeIncludingAncestors(ListableBeanFactory, ResolvableType)
+	 *
+	 * 返回对于指定类型 获取bean的名字
 	 */
 	String[] getBeanNamesForType(ResolvableType type);
 
@@ -255,6 +263,8 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * @return the names of all matching beans
 	 * @since 4.0
 	 * @see #findAnnotationOnBean
+	 *
+	 * 获取包含某个注解 bean的名字
 	 */
 	String[] getBeanNamesForAnnotation(Class<? extends Annotation> annotationType);
 
@@ -283,6 +293,8 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * @since 3.0
 	 * @see #getBeanNamesForAnnotation
 	 * @see #getBeansWithAnnotation
+	 *
+	 * 根据指定Bean名和注解类型查找指定的Bean
 	 */
 	@Nullable
 	<A extends Annotation> A findAnnotationOnBean(String beanName, Class<A> annotationType)
