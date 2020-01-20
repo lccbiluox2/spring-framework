@@ -110,6 +110,8 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 			if (bean instanceof ResourceLoaderAware) {
 				((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
 			}
+			//如果想在应用内发送广播，需要开发一个实现了ApplicationEventPublisherAware接口的bean，就会在此被注入一个
+			// ApplicationEventPublisher对象，借助这个对象就能发送广播了
 			if (bean instanceof ApplicationEventPublisherAware) {
 				((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
 			}

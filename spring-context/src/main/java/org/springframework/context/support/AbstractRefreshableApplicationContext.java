@@ -130,7 +130,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			closeBeanFactory();
 		}
 		try {
-			// 初始化一个 DefaultListableBeanFactory
+			// 初始化一个 DefaultListableBeanFactory，createBeanFactory方法直接新建一个DefaultListableBeanFactory，内部使用的是DefaultListableBeanFactory实例
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
 			// 用于 BeanFactory 的序列化
 			beanFactory.setSerializationId(getId());
@@ -139,6 +139,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			// 加载 Bean 到 BeanFactory 中
 			loadBeanDefinitions(beanFactory);
 			synchronized (this.beanFactoryMonitor) {
+				// 使用全局变量记录BeanFactor
 				this.beanFactory = beanFactory;
 			}
 		}

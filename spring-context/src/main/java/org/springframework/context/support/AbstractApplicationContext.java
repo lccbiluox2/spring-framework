@@ -621,7 +621,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment.
-		//留给子类实现的空方法
+		//留给子类实现的空方法,对上下文环境中的任何属性源进行分类。
 		initPropertySources();
 
 		// Validate that all properties marked as required are resolvable:
@@ -630,6 +630,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		 AbstractPropertyResolver类的requiredProperties是个集合，
 		 在下面的validateRequiredProperties方法中，都要拿requiredProperties中的元素作为key去检查是否存在对应的环境变量，
 		 如果不存在就抛出异常
+
+		 验证标示为必填的属性信息是否都有了 ConfigurablePropertyResolver#setRequiredProperties 方法
 		 */
 		getEnvironment().validateRequiredProperties();
 
@@ -857,6 +859,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void initApplicationEventMulticaster() {
 		ConfigurableListableBeanFactory beanFactory = getBeanFactory();
+		// 使用自定义的 广播
 		if (beanFactory.containsLocalBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME)) {
 			this.applicationEventMulticaster =
 					beanFactory.getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster.class);
@@ -865,6 +868,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			}
 		}
 		else {
+			// 使用spring 默认的广播
 			this.applicationEventMulticaster = new SimpleApplicationEventMulticaster(beanFactory);
 			beanFactory.registerSingleton(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, this.applicationEventMulticaster);
 			if (logger.isTraceEnabled()) {
@@ -917,14 +921,14 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void registerListeners() {
 		// Register statically specified listeners first.
-		// 注册的都是特殊的事件监听器，而并非配置中的bean
+		// 注册的都是特殊的事件监听器，而并非配置中的bean，注册 添加 ApplicationListener  这里通过硬编码 addApplicationListener 方法添加的
 		for (ApplicationListener<?> listener : getApplicationListeners()) {
 			getApplicationEventMulticaster().addApplicationListener(listener);
 		}
 
 		// Do not initialize FactoryBeans here: We need to leave all regular beans
 		// uninitialized to let post-processors apply to them!
-		// 根据接口类型找出所有监听器的名称
+		// 根据接口类型找出所有监听器的名称，注册 添加 ApplicationListener 这里是自动注册添加的
 		String[] listenerBeanNames = getBeanNamesForType(ApplicationListener.class, true, false);
 		for (String listenerBeanName : listenerBeanNames) {
 			// 这里只是把监听器的名称保存在广播器中，并没有将这些监听器实例化！！！
@@ -932,6 +936,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Publish early application events now that we finally have a multicaster...
+		// 发布早期的事件
 		Set<ApplicationEvent> earlyEventsToProcess = this.earlyApplicationEvents;
 		this.earlyApplicationEvents = null;
 		if (earlyEventsToProcess != null) {

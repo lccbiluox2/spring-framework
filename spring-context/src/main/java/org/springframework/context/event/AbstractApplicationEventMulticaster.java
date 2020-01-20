@@ -108,8 +108,10 @@ public abstract class AbstractApplicationEventMulticaster
 			// in order to avoid double invocations of the same listener.
 			Object singletonTarget = AopProxyUtils.getSingletonTarget(listener);
 			if (singletonTarget instanceof ApplicationListener) {
+				//如果因为AOP导致创建了监听类的代理，那么就要在注册列表中清除代理类
 				this.defaultRetriever.applicationListeners.remove(singletonTarget);
 			}
+			//把监听器加入集合defaultRetriever.applicationListeners中，这是个LinkedHashSet实例
 			this.defaultRetriever.applicationListeners.add(listener);
 			this.retrieverCache.clear();
 		}
@@ -182,12 +184,15 @@ public abstract class AbstractApplicationEventMulticaster
 			return retriever.getApplicationListeners();
 		}
 
+		//如果没有从缓存中取到，就要获取了数据再返回
 		if (this.beanClassLoader == null ||
 				(ClassUtils.isCacheSafe(event.getClass(), this.beanClassLoader) &&
 						(sourceType == null || ClassUtils.isCacheSafe(sourceType, this.beanClassLoader)))) {
 			// Fully synchronized building and caching of a ListenerRetriever
+			// 这里有锁
 			synchronized (this.retrievalMutex) {
 				retriever = this.retrieverCache.get(cacheKey);
+				//抢到锁之后再做一次判断，因为有可能在前面BLOCK的时候，另一个抢到锁的线程已经设置好了缓存
 				if (retriever != null) {
 					return retriever.getApplicationListeners();
 				}
