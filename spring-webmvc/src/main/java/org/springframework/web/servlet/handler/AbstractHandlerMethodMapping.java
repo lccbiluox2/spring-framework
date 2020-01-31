@@ -360,7 +360,9 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 */
 	@Override
 	protected HandlerMethod getHandlerInternal(HttpServletRequest request) throws Exception {
+		// 从request中得到请求的URL路径
 		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
+		// 将得到的URL路径与handler进行匹配，得到对应的handler，如果没有对应的Handler,则返回null,这样的默认的Handler会被是使用
 		this.mappingRegistry.acquireReadLock();
 		try {
 			HandlerMethod handlerMethod = lookupHandlerMethod(lookupPath, request);

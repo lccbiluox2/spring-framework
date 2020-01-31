@@ -65,7 +65,7 @@ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 			// todo 这里有疑问 即
 			// targetClass.isInterface()
 			// Proxy.isProxyClass(targetClass)
-			// 什么情况下会生效
+			// 什么情况下会生效,如果targetClass是接口类，则使用JDK来生成Proxy
 			if (targetClass.isInterface() || Proxy.isProxyClass(targetClass)) {
 				// 创建jdk动态代理
 				return new JdkDynamicAopProxy(config);

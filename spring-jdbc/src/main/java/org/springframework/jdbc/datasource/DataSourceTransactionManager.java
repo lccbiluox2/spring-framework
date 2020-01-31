@@ -113,6 +113,9 @@ import org.springframework.util.Assert;
 public class DataSourceTransactionManager extends AbstractPlatformTransactionManager
 		implements ResourceTransactionManager, InitializingBean {
 
+	/**
+	 * 这是注入的Datasource
+	 */
 	@Nullable
 	private DataSource dataSource;
 
@@ -233,6 +236,12 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 		return obtainDataSource();
 	}
 
+	/**
+	 * 这里是产生 Transaction的地方，为Transaction的创建提供服务，对数据库而言，事务工作室友Connection完成的，这里吧数据库的
+	 * Connection对象放到一个ConnectionHolder中，然后封装到一个DataSourceTransactionObject对象中，在这个额封装过程中增加了
+	 * 许多为事务处理服务的控制数据
+	 * @return
+	 */
 	@Override
 	protected Object doGetTransaction() {
 		DataSourceTransactionObject txObject = new DataSourceTransactionObject();
@@ -243,13 +252,18 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 		 * 设置允许使用保存点
 		 */
 		txObject.setSavepointAllowed(isNestedTransactionAllowed());
-		// 从当前线程中获取ConnectionHolder对象
+		// 从当前线程中获取ConnectionHolder对象，获取与当前线程绑定的数据库Connection，这个Connection在第一个事务开始的地方与线程绑定
 		ConnectionHolder conHolder =
 				(ConnectionHolder) TransactionSynchronizationManager.getResource(obtainDataSource());
 		txObject.setConnectionHolder(conHolder, false);
 		return txObject;
 	}
 
+	/**
+	 * 这里是判断是否已经存在事务的地方，由Connectionholder的isTransactionActive属性来控制
+	 * @param transaction transaction object returned by doGetTransaction
+	 * @return
+	 */
 	@Override
 	protected boolean isExistingTransaction(Object transaction) {
 		DataSourceTransactionObject txObject = (DataSourceTransactionObject) transaction;
@@ -258,6 +272,8 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 
 	/**
 	 * This implementation sets the isolation level but ignores the timeout.
+	 *
+	 * TODO： 处理事务开始的地方
 	 */
 	@Override
 	protected void doBegin(Object transaction, TransactionDefinition definition) {

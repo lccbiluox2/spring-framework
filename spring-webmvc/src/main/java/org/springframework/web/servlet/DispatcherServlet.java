@@ -593,6 +593,8 @@ public class DispatcherServlet extends FrameworkServlet {
 	private void initHandlerMappings(ApplicationContext context) {
 		this.handlerMappings = null;
 
+		// 这里导入所有的HandlerMapping Bean,,这些Bean可以在当前的DispatcherServlet的IOC容器中，也可以在其双亲上下文中，这个
+		// detectAllHandlerMapping 的默认设置为true，即默认的从所有的IOC容器中取
 		if (this.detectAllHandlerMappings) {
 			// Find all HandlerMappings in the ApplicationContext, including ancestor contexts.
 			Map<String, HandlerMapping> matchingBeans =
@@ -604,6 +606,7 @@ public class DispatcherServlet extends FrameworkServlet {
 			}
 		}
 		else {
+			// 可以根据名称从当前的IOC容器中通过getBean获取handlerMapping
 			try {
 				HandlerMapping hm = context.getBean(HANDLER_MAPPING_BEAN_NAME, HandlerMapping.class);
 				this.handlerMappings = Collections.singletonList(hm);
@@ -615,6 +618,7 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		// Ensure we have at least one HandlerMapping, by registering
 		// a default HandlerMapping if no other mappings are found.
+		// 如果没有找到handlerMapings,那么需要为Servlet设定默认的handlerMappings，这些默认值可以设置的DispatcherServlet.properties中
 		if (this.handlerMappings == null) {
 			this.handlerMappings = getDefaultStrategies(context, HandlerMapping.class);
 			if (logger.isTraceEnabled()) {
@@ -925,6 +929,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		}
 
 		// Make framework objects available to handlers and view objects.
+		// 对http请求参数进行快照处理
 		request.setAttribute(WEB_APPLICATION_CONTEXT_ATTRIBUTE, getWebApplicationContext());
 		request.setAttribute(LOCALE_RESOLVER_ATTRIBUTE, this.localeResolver);
 		request.setAttribute(THEME_RESOLVER_ATTRIBUTE, this.themeResolver);
@@ -940,6 +945,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		}
 
 		try {
+			// 这个doDispatch是分发请求的入口
 			doDispatch(request, response);
 		}
 		finally {
@@ -1004,6 +1010,8 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
 
+		// 这里为视图准备好一个ModeLandView,这个ModelAndView持有handler处理请求的结果
+
 		try {
 			ModelAndView mv = null;
 			Exception dispatchException = null;
@@ -1013,6 +1021,7 @@ public class DispatcherServlet extends FrameworkServlet {
 				multipartRequestParsed = (processedRequest != request);
 
 				// Determine handler for the current request.
+				// 根据请求得到对应的handler，handler的注册一级getHandler的实现
 				mappedHandler = getHandler(processedRequest);
 				if (mappedHandler == null) {
 					noHandlerFound(processedRequest, response);
@@ -1020,6 +1029,8 @@ public class DispatcherServlet extends FrameworkServlet {
 				}
 
 				// Determine handler adapter for the current request.
+				// 这里是实际调用handler的地方，在执行handler之前，用HandlerAdapter先检查一下handler的合法性，是不是按Spring的要求
+				// 编写的handler，handler处理的结果封装到ModelAndView对象中，为视图提供展现数据
 				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
 
 				// Process last-modified header, if supported by the handler.
@@ -1037,6 +1048,7 @@ public class DispatcherServlet extends FrameworkServlet {
 				}
 
 				// Actually invoke the handler.
+				// 通过调用HandleAdapter的handle方法，实际上触发对Controller的handRequest方法的调用
 				mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
 
 				if (asyncManager.isConcurrentHandlingStarted()) {
@@ -1338,6 +1350,7 @@ public class DispatcherServlet extends FrameworkServlet {
 	 */
 	protected void render(ModelAndView mv, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		// Determine locale for request and apply it to the response.
+		// 从request中读取locale信息，并且设置response的locale值
 		Locale locale =
 				(this.localeResolver != null ? this.localeResolver.resolveLocale(request) : request.getLocale());
 		response.setLocale(locale);
@@ -1346,6 +1359,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		String viewName = mv.getViewName();
 		if (viewName != null) {
 			// We need to resolve the view name.
+			// 需要对视图名称进行解析
 			view = resolveViewName(viewName, mv.getModelInternal(), locale, request);
 			if (view == null) {
 				throw new ServletException("Could not resolve view with name '" + mv.getViewName() +
@@ -1353,7 +1367,9 @@ public class DispatcherServlet extends FrameworkServlet {
 			}
 		}
 		else {
+			// ModelAndview中有可能已经包含了View对象，那就可以直接使用
 			// No need to lookup: the ModelAndView object contains the actual View object.
+			// 直接从ModelAndView对象中取得实际的视图对象
 			view = mv.getView();
 			if (view == null) {
 				throw new ServletException("ModelAndView [" + mv + "] neither contains a view name nor a " +
@@ -1369,6 +1385,7 @@ public class DispatcherServlet extends FrameworkServlet {
 			if (mv.getStatus() != null) {
 				response.setStatus(mv.getStatus().value());
 			}
+			// 低啊用view 实现对数据进行呈现，并且通过HttpResponse把视图呈现给HTTP客户端
 			view.render(mv.getModelInternal(), request, response);
 		}
 		catch (Exception ex) {

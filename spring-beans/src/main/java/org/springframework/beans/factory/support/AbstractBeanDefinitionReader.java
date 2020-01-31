@@ -253,6 +253,8 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 
 	@Override
 	public int loadBeanDefinitions(String... locations) throws BeanDefinitionStoreException {
+		// 如果Resource为空，则停止BeanDefinition的载入，然后启动载入BeanDefinition的过程，这个过程会遍历整个Resource集合所包含的BenaDefinition
+		// 信息
 		Assert.notNull(locations, "Location array must not be null");
 		int count = 0;
 		for (String location : locations) {

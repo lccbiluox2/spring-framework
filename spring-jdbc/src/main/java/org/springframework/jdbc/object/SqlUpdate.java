@@ -249,10 +249,12 @@ public class SqlUpdate extends SqlOperation {
 	 */
 	public int updateByNamedParam(Map<String, ?> paramMap) throws DataAccessException {
 		validateNamedParameters(paramMap);
+		// 设置SQL和配置SQL的参数
 		ParsedSql parsedSql = getParsedSql();
 		MapSqlParameterSource paramSource = new MapSqlParameterSource(paramMap);
 		String sqlToUse = NamedParameterUtils.substituteNamedParameters(parsedSql, paramSource);
 		Object[] params = NamedParameterUtils.buildValueArray(parsedSql, paramSource, getDeclaredParameters());
+		// 调用JdbcTemplete进行update
 		int rowsAffected = getJdbcTemplate().update(newPreparedStatementCreator(sqlToUse, params));
 		checkRowsAffected(rowsAffected);
 		return rowsAffected;

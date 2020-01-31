@@ -130,13 +130,13 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			closeBeanFactory();
 		}
 		try {
-			// 初始化一个 DefaultListableBeanFactory，createBeanFactory方法直接新建一个DefaultListableBeanFactory，内部使用的是DefaultListableBeanFactory实例
+			// 创建IOC容器，初始化一个 DefaultListableBeanFactory，createBeanFactory方法直接新建一个DefaultListableBeanFactory，内部使用的是DefaultListableBeanFactory实例
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
 			// 用于 BeanFactory 的序列化
 			beanFactory.setSerializationId(getId());
 			// 设置 BeanFactory 的两个配置属性：是否允许 Bean 覆盖、是否允许循环引用
 			customizeBeanFactory(beanFactory);
-			// 加载 Bean 到 BeanFactory 中
+			// 加载 Bean 到 BeanFactory 中，启动对BeanDefintion的载入
 			loadBeanDefinitions(beanFactory);
 			synchronized (this.beanFactoryMonitor) {
 				// 使用全局变量记录BeanFactor
@@ -210,6 +210,8 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @see org.springframework.beans.factory.support.DefaultListableBeanFactory#setAllowEagerClassLoading
 	 * @see org.springframework.beans.factory.support.DefaultListableBeanFactory#setAllowCircularReferences
 	 * @see org.springframework.beans.factory.support.DefaultListableBeanFactory#setAllowRawInjectionDespiteWrapping
+	 *
+	 * 会根据容器已有的双亲IOC容器的信息赖生成 DefaultListableBeanFactory的双亲IOC容器
 	 */
 	protected DefaultListableBeanFactory createBeanFactory() {
 		return new DefaultListableBeanFactory(getInternalParentBeanFactory());
@@ -248,6 +250,9 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @throws IOException if loading of bean definition files failed
 	 * @see org.springframework.beans.factory.support.PropertiesBeanDefinitionReader
 	 * @see org.springframework.beans.factory.xml.XmlBeanDefinitionReader
+	 *
+	 * 这里是使用 BeanDefinitionReader载入Bean定义的地方，因为允许有多重载入方式，虽然用的最多的是XML的形式，这里通过一个抽象函数，吧具体的实现
+	 * 委托给子类来完成
 	 */
 	protected abstract void loadBeanDefinitions(DefaultListableBeanFactory beanFactory)
 			throws BeansException, IOException;

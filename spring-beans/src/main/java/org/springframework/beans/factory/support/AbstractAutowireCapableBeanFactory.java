@@ -1501,6 +1501,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		String[] propertyNames = unsatisfiedNonSimpleProperties(mbd, bw);
 		for (String propertyName : propertyNames) {
 			if (containsBean(propertyName)) {
+				// 使用获取的当前debean的属性名作为Bean的名字，向IOC容器索取Bean，然后把从容器得到的Bean设置到当前Bean的属性中去
 				Object bean = getBean(propertyName);
 				pvs.add(propertyName, bean);
 				registerDependentBean(propertyName, beanName);
@@ -1654,6 +1655,18 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @param pds the relevant property descriptors for the target bean
 	 * @param pvs the property values to be applied to the bean
 	 * @see #isExcludedFromDependencyCheck(java.beans.PropertyDescriptor)
+	 *
+	 * 在使用Spring的时候，如果应用设计比较复杂，那么在这个应用中，IoC管理的Bean的
+	 * 个数可能非常多，这些Bean之间的相互依赖关系也会非常复杂。在一般情况下， Bean的依赖
+	 * 注人是在应用第-.次向容器索取Bean的时候发生，在这个时候，不能保证注入一定能够成功，
+	 * 如果需要重新检查这些依赖关系的有效性，会是一件很繁琐的事情。为了解决这样的问题，
+	 * 在SpringIoC容器中，设计了一个依赖检查特性，通过它，Spring可以帮助应用检查是否所
+	 * 有的属性都已经被正确设置。在具体使用的时候，应用只需要在Bean定义中设置
+	 * dependency- check属性来指定依赖检查模式即可，这里可以将属性设置为none、simple、
+	 * object、all四种模式，默认的模式是none。如果对检查模式进行了设置，通过下面的分析，
+	 * 可以更好地理解这个特性的使用。具体的实现代码是在AbstractAutowireCapableBeanFactory
+	 * 实现createBean的过程中完成的。在这个过程中，会对Bean的Dependencies属性进行检查，
+	 * 如果发现不满足要求，就会抛出异常通知应用。
 	 */
 	protected void checkDependencies(
 			String beanName, AbstractBeanDefinition mbd, PropertyDescriptor[] pds, @Nullable PropertyValues pvs)

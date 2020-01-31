@@ -61,13 +61,20 @@ import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
  */
 public class XmlWebApplicationContext extends AbstractRefreshableWebApplicationContext {
 
-	/** Default config location for the root context. */
+	/** Default config location for the root context.
+	 * 这里是设置默认的BeanDefinition的地方，在/WEB-INF/applicationContext.xml文件中，如果不特意指定其他文件，
+	 * IOC容器会从这里读取BeanDefinition来初始化IOC容量
+	 * */
 	public static final String DEFAULT_CONFIG_LOCATION = "/WEB-INF/applicationContext.xml";
 
-	/** Default prefix for building a config location for a namespace. */
+	/** Default prefix for building a config location for a namespace.
+	 * 默认的配置文件位置在/WEB-INF/目录下
+	 * */
 	public static final String DEFAULT_CONFIG_LOCATION_PREFIX = "/WEB-INF/";
 
-	/** Default suffix for building a config location for a namespace. */
+	/** Default suffix for building a config location for a namespace.
+	 * 默认的配置文件后缀
+	 * */
 	public static final String DEFAULT_CONFIG_LOCATION_SUFFIX = ".xml";
 
 
@@ -91,6 +98,7 @@ public class XmlWebApplicationContext extends AbstractRefreshableWebApplicationC
 
 		// Allow a subclass to provide custom initialization of the reader,
 		// then proceed with actually loading the bean definitions.
+		// 运行子类为reader配置自定义的初始化过程
 		initBeanDefinitionReader(beanDefinitionReader);
 		//解析XML配置文件中的bean。
 		loadBeanDefinitions(beanDefinitionReader);
@@ -119,6 +127,9 @@ public class XmlWebApplicationContext extends AbstractRefreshableWebApplicationC
 	 * @see #getConfigLocations
 	 * @see #getResources
 	 * @see #getResourcePatternResolver
+	 *
+	 * 如果有多个BeanDefinition的文件定义，需要逐个载入，都是通过reader来完成的，这个初始化过程是由refreshBeanFactory方法来完成的，
+	 * 这里只负责载入BeanFinition
 	 */
 	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws IOException {
 		//此处读取的就是之前设置好的web.xml中配置文件地址
@@ -135,6 +146,8 @@ public class XmlWebApplicationContext extends AbstractRefreshableWebApplicationC
 	 * The default location for the root context is "/WEB-INF/applicationContext.xml",
 	 * and "/WEB-INF/test-servlet.xml" for a context with the namespace "test-servlet"
 	 * (like for a DispatcherServlet instance with the servlet-name "test").
+	 *
+	 * 这里是取得Resource位置的地方，使用了设定的默认配置，默认配置位置是/WEB-INF/applicationContext.xml
 	 */
 	@Override
 	protected String[] getDefaultConfigLocations() {

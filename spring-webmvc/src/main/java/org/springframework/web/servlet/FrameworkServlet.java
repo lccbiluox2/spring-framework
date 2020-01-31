@@ -660,6 +660,7 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 				(ConfigurableWebApplicationContext) BeanUtils.instantiateClass(contextClass);
 
 		wac.setEnvironment(getEnvironment());
+		// 设置双亲上下文
 		wac.setParent(parent);
 		String configLocation = getContextConfigLocation();
 		if (configLocation != null) {
@@ -699,6 +700,7 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 
 		postProcessWebApplicationContext(wac);
 		applyInitializers(wac);
+		// 启动容器的初始化
 		wac.refresh();
 	}
 

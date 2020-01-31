@@ -4262,6 +4262,7 @@ The following example creates a custom update method named `execute`:
 
 	public class UpdateCreditRating extends SqlUpdate {
 
+        // 注入数据源，提供SQL语句以及声明参数，然后完成compile
 		public UpdateCreditRating(DataSource ds) {
 			setDataSource(ds);
 			setSql("update customer set credit_rating = ? where id = ?");
@@ -4274,6 +4275,8 @@ The following example creates a custom update method named `execute`:
 		 * @param id for the Customer to be updated
 		 * @param rating the new value for credit rating
 		 * @return number of rows updated
+		 *
+		 * 提供具体的采纳数对象，并且低啊用update完成数据库的更新
 		 */
 		public int execute(int id, int rating) {
 			return update(rating, id);

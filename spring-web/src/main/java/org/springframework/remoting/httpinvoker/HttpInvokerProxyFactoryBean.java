@@ -56,19 +56,32 @@ import org.springframework.util.Assert;
  */
 public class HttpInvokerProxyFactoryBean extends HttpInvokerClientInterceptor implements FactoryBean<Object> {
 
+	// 这是远端对象的代理
 	@Nullable
 	private Object serviceProxy;
 
 
+	/**
+	 * 在注入完成后设置远端对象代理
+	 */
 	@Override
 	public void afterPropertiesSet() {
 		super.afterPropertiesSet();
+		// 需要配置远端调用的接口
 		Class<?> ifc = getServiceInterface();
 		Assert.notNull(ifc, "Property 'serviceInterface' is required");
+		/**
+		 * 这里使用 ProxyFacetory来生成远端代理端对象，注意这个this，因为HttpInvokerProxyFactoryBean的基类是HttpInvokerClientInterceptor，所以代理
+		 * 类的拦截器被设置为HttpInvokerCientInterceptor
+		 */
 		this.serviceProxy = new ProxyFactory(ifc, this).getProxy(getBeanClassLoader());
 	}
 
 
+	/**
+	 * FactoryBean生成对象的入口，返回的是serviceProxy对象，这是一个代理对象
+	 * @return
+	 */
 	@Override
 	@Nullable
 	public Object getObject() {

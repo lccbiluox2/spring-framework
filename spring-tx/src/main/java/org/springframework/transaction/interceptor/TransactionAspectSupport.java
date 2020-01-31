@@ -251,6 +251,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 	 */
 	@Override
 	public void afterPropertiesSet() {
+		// 必须设置 target的属性，同事需要target是一个 bean reference
 		if (getTransactionManager() == null && this.beanFactory == null) {
 			throw new IllegalStateException(
 					"Set the 'transactionManager' property or make sure to run within a BeanFactory " +
@@ -288,22 +289,26 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 		// 获取目标类全限定类名+连接点方法名 例如:com.lyc.cn.v2.day09.AccountServiceImpl.save
 		final String joinpointIdentification = methodIdentification(method, targetClass, txAttr);
 
+		// 这里区分不同类型的platformTransactionManager，因为他们的调用方式不同，对CallbackPreperferringPlatformTransactionManager
+		// 来说，需要回调函数来实现事务的创建和提交，对于非 CallbackPreferringPlatformTransactionManager来说，不需要通过回调函数来实现
+		// 事务的创建和提交
 		// 2.处理声明式事物
 		if (txAttr == null || !(tm instanceof CallbackPreferringPlatformTransactionManager)) {
 			// Standard transaction demarcation with getTransaction and commit/rollback calls.
-			// 2.2 创建事物（如果需要的话的，根据事物传播特性而定）
+			// 2.2 创建事物（如果需要的话的，根据事物传播特性而定），同事把创建事务过程中得到的信息放到TransactionInfo中去
+			// TransactionInfo是保存当前事务状态的对象
 			TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdentification);
 
 			Object retVal;
 			try {
 				// This is an around advice: Invoke the next interceptor in the chain.
 				// This will normally result in a target object being invoked.
-				// 2.3 继续调用方法拦截器链,这里一般将会调用目标类的方法,如:com.lyc.cn.v2.day09.AccountServiceImpl.save方法
+				// 2.3 继续调用方法拦截器链,这里一般将会调用目标类的方法,如:com.AccountServiceImpl.save方法
 				retVal = invocation.proceedWithInvocation();
 			}
 			catch (Throwable ex) {
 				// target invocation exception
-				// 2.4 如果目标类方法抛出异常,则在此处理,例如:事物回滚
+				// 2.4 如果目标类方法抛出异常,则在此处理,例如:事物回滚，或者提交
 				completeTransactionAfterThrowing(txInfo, ex);
 				throw ex;
 			}
@@ -520,6 +525,8 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 				logger.trace("Getting transaction for [" + txInfo.getJoinpointIdentification() + "]");
 			}
 			// The transaction manager will flag an error if an incompatible tx already exists.
+			// 这里为tranactionInfo设置TransactionSattus，这个TransactionStatus很重要，它持有管理事务处理需要的数据
+			// 比如，transaction对象就是由TransactionStatus来持有的
 			txInfo.newTransactionStatus(status);
 		}
 		else {
@@ -535,6 +542,8 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 		// a new transaction here. This guarantees that the TransactionInfo stack
 		// will be managed correctly even if no transaction was created by this aspect.
 		// 这里:不论是否开启了新的事物,都将TransactionInfo绑定到当前线程,以保证TransactionInfo堆栈的完整性。
+		// 把当前的TransactionInfo与线程绑定，同时在 TransactionInfo中由一个变量来保存以前的TransactionInfo，这样就持有了
+		// 一连串与事务处理相关的 TransactionInfo，虽然不一定需要创建新的事务，但是总会在请求事务时创建TransactionInfo
 		txInfo.bindToThread();
 		return txInfo;
 	}

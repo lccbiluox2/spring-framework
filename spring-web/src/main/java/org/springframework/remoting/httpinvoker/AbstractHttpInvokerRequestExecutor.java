@@ -236,6 +236,8 @@ public abstract class AbstractHttpInvokerRequestExecutor implements HttpInvokerR
 	 * @see #decorateInputStream
 	 * @see #createObjectInputStream
 	 * @see #doReadRemoteInvocationResult
+	 *
+	 * 把返回的对象封装成 RemoteInvocationResult
 	 */
 	protected RemoteInvocationResult readRemoteInvocationResult(InputStream is, @Nullable String codebaseUrl)
 			throws IOException, ClassNotFoundException {

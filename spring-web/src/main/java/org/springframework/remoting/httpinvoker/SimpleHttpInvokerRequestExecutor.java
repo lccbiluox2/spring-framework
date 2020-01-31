@@ -79,15 +79,20 @@ public class SimpleHttpInvokerRequestExecutor extends AbstractHttpInvokerRequest
 	 * @see #writeRequestBody
 	 * @see #validateResponse
 	 * @see #readResponseBody
+	 *
+	 * 这是HTTP调用器实现的基本国策，通过HTTP的request和response来完成通讯，在通讯的过程中传输的数据是序列化的对象
 	 */
 	@Override
 	protected RemoteInvocationResult doExecuteRequest(
 			HttpInvokerClientConfiguration config, ByteArrayOutputStream baos)
 			throws IOException, ClassNotFoundException {
 
+		// 打开一个标准的J2SE httpUrlConnection
 		HttpURLConnection con = openConnection(config);
 		prepareConnection(con, baos.size());
+		// 远端调用封装成RemoteInvocation对象，这个对象通过序列化被写到对应的HttpURLConnection中去
 		writeRequestBody(config, con, baos);
+		// 这里取得远端服务返回的结果，然后把结构转换成RemoteInvocationResult返回
 		validateResponse(config, con);
 		InputStream responseBody = readResponseBody(config, con);
 
@@ -121,6 +126,8 @@ public class SimpleHttpInvokerRequestExecutor extends AbstractHttpInvokerRequest
 	 * @throws IOException if thrown by HttpURLConnection methods
 	 * @see java.net.HttpURLConnection#setRequestMethod
 	 * @see java.net.HttpURLConnection#setRequestProperty
+	 *
+	 * 为使用 HttpURLConnection 来完成对象序列化，需要进行一系列的配置，比如配置请求方式为Post，请求属性等
 	 */
 	protected void prepareConnection(HttpURLConnection connection, int contentLength) throws IOException {
 		if (this.connectTimeout >= 0) {
@@ -160,6 +167,8 @@ public class SimpleHttpInvokerRequestExecutor extends AbstractHttpInvokerRequest
 	 * @throws IOException if thrown by I/O methods
 	 * @see java.net.HttpURLConnection#getOutputStream()
 	 * @see java.net.HttpURLConnection#setRequestProperty
+	 *
+	 * 把序列化对象输出到HttpURLConnection中
 	 */
 	protected void writeRequestBody(
 			HttpInvokerClientConfiguration config, HttpURLConnection con, ByteArrayOutputStream baos)
@@ -203,16 +212,20 @@ public class SimpleHttpInvokerRequestExecutor extends AbstractHttpInvokerRequest
 	 * @see java.net.HttpURLConnection#getInputStream()
 	 * @see java.net.HttpURLConnection#getHeaderField(int)
 	 * @see java.net.HttpURLConnection#getHeaderFieldKey(int)
+	 *
+	 * 获得HTTP相应的IO流
 	 */
 	protected InputStream readResponseBody(HttpInvokerClientConfiguration config, HttpURLConnection con)
 			throws IOException {
 
+		// 如果是通过gzip压缩，那么需要先解压缩
 		if (isGzipResponse(con)) {
 			// GZIP response found - need to unzip.
 			return new GZIPInputStream(con.getInputStream());
 		}
 		else {
 			// Plain response found.
+			// 正常的http相应输出
 			return con.getInputStream();
 		}
 	}

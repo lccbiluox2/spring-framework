@@ -568,7 +568,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
-				// applicationContext刷新完成后的处理，例如生命周期监听器的回调，广播通知等
+				// applicationContext刷新完成后的处理，例如生命周期监听器的回调，广播通知等，发布容器事件，结束Refresh过程
 				finishRefresh();
 			}
 
@@ -579,11 +579,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				}
 
 				// Destroy already created singletons to avoid dangling resources.
-				// 刷新失败后的处理，主要是将一些保存环境信息的集合做清理
+				// 刷新失败后的处理，主要是将一些保存环境信息的集合做清理，为了防止Bean资源占用，在异常处理中，销毁已经在前面
+				// 过程中生成的单件Bean
 				destroyBeans();
 
 				// Reset 'active' flag.
-				// applicationContext是否已经激活的标志，设置为false
+				// applicationContext是否已经激活的标志，将active设置为false
 				cancelRefresh(ex);
 
 				// Propagate exception to caller.
