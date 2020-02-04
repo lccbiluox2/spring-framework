@@ -214,26 +214,42 @@ public class AnnotatedBeanDefinitionReader {
 	<T> void doRegisterBean(Class<T> beanClass, @Nullable Supplier<T> instanceSupplier, @Nullable String name,
 			@Nullable Class<? extends Annotation>[] qualifiers, BeanDefinitionCustomizer... definitionCustomizers) {
 
+		//根据指定的注解Bean定义类，创建Spring容器中对注解Bean的封装的数据结构
 		AnnotatedGenericBeanDefinition abd = new AnnotatedGenericBeanDefinition(beanClass);
+		//用来解析注释了@condition注解的类，不满足条件跳过
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
 		}
 
+		//设置创建bean实例的回调
 		abd.setInstanceSupplier(instanceSupplier);
+		//解析注解Bean定义的作用域
 		ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(abd);
+		//为注解Bean定义设置作用域
 		abd.setScope(scopeMetadata.getScopeName());
+		//为注解Bean生成Bean名称
 		String beanName = (name != null ? name : this.beanNameGenerator.generateBeanName(abd, this.registry));
 
+		//处理注解Bean定义中的通用注解
 		AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);
+
+		//如果在向容器注册注解Bean定义时，使用了额外的限定符注解，则解析限定符注解。
+		//主要是配置的关于autowiring自动依赖注入装配的限定条件，即@Qualifier注解，Spring自动依赖注入装配默认是按类型装配，
+		// 如果使用@Qualifier则按名称
 		if (qualifiers != null) {
 			for (Class<? extends Annotation> qualifier : qualifiers) {
+				//如果配置了@Primary注解，设置该Bean为autowiring自动依赖注入装配时的首选
 				if (Primary.class == qualifier) {
 					abd.setPrimary(true);
 				}
+				//如果配置了@Lazy注解，则设置该Bean为非延迟初始化，如果没有配置，则该Bean为预实例化
 				else if (Lazy.class == qualifier) {
 					abd.setLazyInit(true);
 				}
 				else {
+					//如果使用了除@Primary和@Lazy以外的其他注解，则为该Bean添加一
+					//个autowiring自动依赖注入装配限定符，该Bean在进autowiring
+					//自动依赖注入装配时，根据名称装配限定符指定的Bean
 					abd.addQualifier(new AutowireCandidateQualifier(qualifier));
 				}
 			}
@@ -242,8 +258,11 @@ public class AnnotatedBeanDefinitionReader {
 			customizer.customize(abd);
 		}
 
+		//创建一个指定Bean名称的Bean定义对象，封装注解Bean定义类数据
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(abd, beanName);
+		//根据注解Bean定义类中配置的作用域，创建相应的代理对象
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
+		//向IoC容器注册注解Bean类定义对象
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, this.registry);
 	}
 

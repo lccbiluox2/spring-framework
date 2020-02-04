@@ -89,6 +89,7 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 	 * @see #DEFAULT_HANDLER_MAPPINGS_LOCATION
 	 */
 	public DefaultNamespaceHandlerResolver(@Nullable ClassLoader classLoader) {
+		//设置类加载器和handlerMapping文件的位置
 		this(classLoader, DEFAULT_HANDLER_MAPPINGS_LOCATION);
 	}
 

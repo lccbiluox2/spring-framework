@@ -264,6 +264,7 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @PropertySource annotations
+		//处理@PropertySource  加载外面资源文件
 		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), PropertySources.class,
 				org.springframework.context.annotation.PropertySource.class)) {
@@ -277,6 +278,7 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @ComponentScan annotations
+		//处理  @ComponentScan 扫描包
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
 		if (!componentScans.isEmpty() &&
@@ -299,6 +301,7 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @Import annotations
+		//处理@Import注解
 		processImports(configClass, sourceClass, getImports(sourceClass), true);
 
 		// Process any @ImportResource annotations
@@ -314,6 +317,7 @@ class ConfigurationClassParser {
 		}
 
 		// Process individual @Bean methods
+		//处理@Bean注解
 		Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(sourceClass);
 		for (MethodMetadata methodMetadata : beanMethods) {
 			configClass.addBeanMethod(new BeanMethod(methodMetadata, configClass));

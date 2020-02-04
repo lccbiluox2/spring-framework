@@ -531,6 +531,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see #setDocumentReaderClass
 	 */
 	protected BeanDefinitionDocumentReader createBeanDefinitionDocumentReader() {
+		//利用反射机制，调用DefaultBeanDefinitionDocumentReader的构造函数，然后创建一个实例返回
 		return BeanUtils.instantiateClass(this.documentReaderClass);
 	}
 

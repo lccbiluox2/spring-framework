@@ -204,9 +204,13 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 */
 	@SuppressWarnings("unchecked")
 	protected void registerDefaultFilters() {
+		//向要包含的过滤规则中添加@Component注解类，注意Spring中@Repository
+		//@Service和@Controller都是Component，因为这些注解都添加了@Component注解
 		this.includeFilters.add(new AnnotationTypeFilter(Component.class));
+		//获取当前类的类加载器
 		ClassLoader cl = ClassPathScanningCandidateComponentProvider.class.getClassLoader();
 		try {
+			//向要包含的过滤规则添加JavaEE6的@ManagedBean注解
 			this.includeFilters.add(new AnnotationTypeFilter(
 					((Class<? extends Annotation>) ClassUtils.forName("javax.annotation.ManagedBean", cl)), false));
 			logger.trace("JSR-250 'javax.annotation.ManagedBean' found and supported for component scanning");
@@ -215,6 +219,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 			// JSR-250 1.1 API (as included in Java EE 6) not available - simply skip.
 		}
 		try {
+			//向要包含的过滤规则添加@Named注解
 			this.includeFilters.add(new AnnotationTypeFilter(
 					((Class<? extends Annotation>) ClassUtils.forName("javax.inject.Named", cl)), false));
 			logger.trace("JSR-330 'javax.inject.Named' annotation found and supported for component scanning");
@@ -416,8 +421,12 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	private Set<BeanDefinition> scanCandidateComponents(String basePackage) {
 		Set<BeanDefinition> candidates = new LinkedHashSet<>();
 		try {
+			//解析给定的包路径，this.resourcePattern=” **/*.class”，
+			//ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX=“classpath:”
+			//resolveBasePackage方法将包名中的”.”转换为文件系统的”/”
 			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
 					resolveBasePackage(basePackage) + '/' + this.resourcePattern;
+			//将给定的包路径解析为Spring资源对象
 			Resource[] resources = getResourcePatternResolver().getResources(packageSearchPath);
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
@@ -427,11 +436,17 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 				}
 				if (resource.isReadable()) {
 					try {
+						//为指定资源获取元数据读取器，元信息读取器通过汇编(ASM)读取资源元信息
 						MetadataReader metadataReader = getMetadataReaderFactory().getMetadataReader(resource);
+						//如果扫描到的类符合容器配置的过滤规则
 						if (isCandidateComponent(metadataReader)) {
+							//通过汇编(ASM)读取资源字节码中的Bean定义元信息
 							ScannedGenericBeanDefinition sbd = new ScannedGenericBeanDefinition(metadataReader);
+							//设置Bean定义来源于resource
 							sbd.setResource(resource);
+							//为元数据元素设置配置资源对象
 							sbd.setSource(resource);
+							//检查Bean是否是一个可实例化的对象
 							if (isCandidateComponent(sbd)) {
 								if (debugEnabled) {
 									logger.debug("Identified candidate component class: " + resource);

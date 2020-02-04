@@ -305,7 +305,9 @@ public class BeanDefinitionParserDelegate {
 	 * @see #getDefaults()
 	 */
 	public void initDefaults(Element root, @Nullable BeanDefinitionParserDelegate parent) {
+		//给defaults设置初始值
 		populateDefaults(this.defaults, (parent != null ? parent.defaults : null), root);
+		//分发一个defaultsRegistered事件
 		this.readerContext.fireDefaultsRegistered(this.defaults);
 	}
 
@@ -319,6 +321,8 @@ public class BeanDefinitionParserDelegate {
 	 * @param root the root element of the current bean definition document (or nested beans element)
 	 */
 	protected void populateDefaults(DocumentDefaultsDefinition defaults, @Nullable DocumentDefaultsDefinition parentDefaults, Element root) {
+		//设置 default-lazy-init ，
+		//值为default时，如果父节点不是null时，继承父节的属性值，否则为false
 		String lazyInit = root.getAttribute(DEFAULT_LAZY_INIT_ATTRIBUTE);
 		if (isDefaultValue(lazyInit)) {
 			// Potentially inherited from outer <beans> sections, otherwise falling back to false.
@@ -326,6 +330,8 @@ public class BeanDefinitionParserDelegate {
 		}
 		defaults.setLazyInit(lazyInit);
 
+		//设置 default-merge
+		//值为default时，如果父节点不是null时，继承父节的属性值，否则为false
 		String merge = root.getAttribute(DEFAULT_MERGE_ATTRIBUTE);
 		if (isDefaultValue(merge)) {
 			// Potentially inherited from outer <beans> sections, otherwise falling back to false.
@@ -333,6 +339,8 @@ public class BeanDefinitionParserDelegate {
 		}
 		defaults.setMerge(merge);
 
+		//设置 default-autowire
+		//值为default时，如果父节点不是null时，继承父节的属性值，否则为no
 		String autowire = root.getAttribute(DEFAULT_AUTOWIRE_ATTRIBUTE);
 		if (isDefaultValue(autowire)) {
 			// Potentially inherited from outer <beans> sections, otherwise falling back to 'no'.
@@ -347,6 +355,7 @@ public class BeanDefinitionParserDelegate {
 			defaults.setAutowireCandidates(parentDefaults.getAutowireCandidates());
 		}
 
+		//设置 default-init-method
 		if (root.hasAttribute(DEFAULT_INIT_METHOD_ATTRIBUTE)) {
 			defaults.setInitMethod(root.getAttribute(DEFAULT_INIT_METHOD_ATTRIBUTE));
 		}
@@ -354,6 +363,7 @@ public class BeanDefinitionParserDelegate {
 			defaults.setInitMethod(parentDefaults.getInitMethod());
 		}
 
+		//设置 default-destroy-method
 		if (root.hasAttribute(DEFAULT_DESTROY_METHOD_ATTRIBUTE)) {
 			defaults.setDestroyMethod(root.getAttribute(DEFAULT_DESTROY_METHOD_ATTRIBUTE));
 		}
@@ -422,11 +432,14 @@ public class BeanDefinitionParserDelegate {
 		//获取<Bean>元素中的alias属性值
 		List<String> aliases = new ArrayList<>();
 		//将<Bean>元素中的所有name属性值存放到别名中
+		//如果name属性值不为空，按照 ,; 符号切分name，切分成一个name属性，并放入到aliases中
+		//这里看出bean的定义，可以定义多个name值，只要通过逗号或者分号分隔即可。
 		if (StringUtils.hasLength(nameAttr)) {
 			String[] nameArr = StringUtils.tokenizeToStringArray(nameAttr, MULTI_VALUE_ATTRIBUTE_DELIMITERS);
 			aliases.addAll(Arrays.asList(nameArr));
 		}
 
+		//把beanName设置成id，
 		String beanName = id;
 		//如果<Bean>元素中没有配置id属性时，将别名中的第一个值赋值给beanName
 		if (!StringUtils.hasText(beanName) && !aliases.isEmpty()) {
@@ -439,6 +452,9 @@ public class BeanDefinitionParserDelegate {
 
 		//检查<Bean>元素所配置的id或者name的唯一性，containingBean标识<Bean>
 		//元素中是否包含子<Bean>元素
+		//如果传入的containingBean为null，就检验beanName和aliases是不是已经被占用了，
+		//占用了就抛出一个异常BeanDefinitionParsingException，
+		//这里传入的containingBean就是null，所以一定要经过里面检查
 		if (containingBean == null) {
 			//检查<Bean>元素所配置的id、name或者别名是否重复
 			checkNameUniqueness(beanName, aliases, ele);
@@ -493,16 +509,20 @@ public class BeanDefinitionParserDelegate {
 	protected void checkNameUniqueness(String beanName, List<String> aliases, Element beanElement) {
 		String foundName = null;
 
+		//判断beanName是否被使用
 		if (StringUtils.hasText(beanName) && this.usedNames.contains(beanName)) {
 			foundName = beanName;
 		}
+		//判断是否aliases中有被占用的
 		if (foundName == null) {
 			foundName = CollectionUtils.findFirstMatch(this.usedNames, aliases);
 		}
+		//如果找到了占用，就抛出异常
 		if (foundName != null) {
 			error("Bean name '" + foundName + "' is already used in this <beans> element", beanElement);
 		}
 
+		//如果没有发现占用，就把beanName和aliaes全部放入到usedNames中
 		this.usedNames.add(beanName);
 		this.usedNames.addAll(aliases);
 	}

@@ -74,6 +74,13 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 	}
 
 
+	/**
+	 * 实例化之前进行的处理
+	 * @param bean the new bean instance
+	 * @param beanName the name of the bean
+	 * @return
+	 * @throws BeansException
+	 */
 	@Override
 	@Nullable
 	public Object postProcessBeforeInitialization(final Object bean, String beanName) throws BeansException {
@@ -88,11 +95,13 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 
 		if (acc != null) {
 			AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+				//给Aware的实现类set值进去
 				invokeAwareInterfaces(bean);
 				return null;
 			}, acc);
 		}
 		else {
+			//给Aware的实现类set值进去
 			invokeAwareInterfaces(bean);
 		}
 
@@ -118,12 +127,20 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 			if (bean instanceof MessageSourceAware) {
 				((MessageSourceAware) bean).setMessageSource(this.applicationContext);
 			}
+			//判读是否是属于ApplicationContextAware接口的类
 			if (bean instanceof ApplicationContextAware) {
+				//调用实现类的setApplicationContext方法把applicationContext set进去
 				((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
 			}
 		}
 	}
 
+	/**
+	 * bean实例化之后
+	 * @param bean the new bean instance
+	 * @param beanName the name of the bean
+	 * @return
+	 */
 	@Override
 	public Object postProcessAfterInitialization(Object bean, String beanName) {
 		return bean;

@@ -80,7 +80,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 								registeredName + "' with new target name '" + name + "'");
 					}
 				}
-				//检查给定名称是否已指向另一个方向的别名作为别名,预先捕获循环引用并抛出相应的IllegalStateException
+				// 检验,是否存在循环引用 检查给定名称是否已指向另一个方向的别名作为别名,预先捕获循环引用并抛出相应的IllegalStateException
 				checkForAliasCircle(name, alias);
 				//缓存别名
 				this.aliasMap.put(alias, name);

@@ -900,7 +900,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		//校验解析的BeanDefiniton，如果beanDefinition是AbstractBeanDefinition实例,则验证
 		if (beanDefinition instanceof AbstractBeanDefinition) {
 			try {
-				//验证不能将静态工厂方法与方法重写相结合(静态工厂方法必须创建实例)
+				//验证不能将静态工厂方法与方法重写相结合(静态工厂方法必须创建实例) 此处的检验是针对AbstractBeanDefinition的属性methodOverrides的检验
 				((AbstractBeanDefinition) beanDefinition).validate();
 			}
 			catch (BeanDefinitionValidationException ex) {
@@ -925,6 +925,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 							existingDefinition + "] with [" + beanDefinition + "]");
 				}
 			}
+			//覆盖 beanDefinition 与 被覆盖的 beanDefinition 不相同，打印 debug 日志
 			else if (!beanDefinition.equals(existingDefinition)) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Overriding bean definition for bean '" + beanName +
@@ -932,6 +933,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 							"] with [" + beanDefinition + "]");
 				}
 			}
+			//其他的,都打印debug日志
 			else {
 				if (logger.isTraceEnabled()) {
 					logger.trace("Overriding bean definition for bean '" + beanName +
@@ -939,6 +941,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 							"] with [" + beanDefinition + "]");
 				}
 			}
+			//允许覆盖，直接覆盖原有的 BeanDefinition 到 beanDefinitionMap 中。
 			this.beanDefinitionMap.put(beanName, beanDefinition);
 		}
 		// 3、缓存中无对应的BeanDefinition，则直接注册
@@ -948,11 +951,13 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 				// Cannot modify startup-time collection elements anymore (for stable iteration)
 				//注册的过程中需要线程同步，以保证数据的一致性
 				synchronized (this.beanDefinitionMap) {
-					// 加入beanDefinitionMap
+					// 将beanDefinition保存到beanDefinitionMap中
 					this.beanDefinitionMap.put(beanName, beanDefinition);
-					// 创建List<String>并将缓存的beanDefinitionNames和新解析的beanName加入集合
+					// 创建List<String>并将缓存的beanDefinitionNames和新解析的beanName加入集合，对beanDefinitionNames进行重新的扩容操作
 					List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
+					//添加扩容之前的
 					updatedDefinitions.addAll(this.beanDefinitionNames);
+					//添加beanName到updatedDefinitions中
 					updatedDefinitions.add(beanName);
 					// 将updatedDefinitions赋值给beanDefinitionNames
 					this.beanDefinitionNames = updatedDefinitions;

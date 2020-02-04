@@ -722,7 +722,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		 */
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
 		/**
-		 * 跳过以下6个属性的自动注入
+		 * 跳过以下6个属性的自动注入，下面几行的意思就是，如果某个 bean 依赖于以下几个接口的实现类，在自动装配的时候忽略它们，
 		 * 因为在ApplicationContextAwareProcessor中已经完成了手动注入
 		 */
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);

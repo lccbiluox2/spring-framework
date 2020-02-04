@@ -56,6 +56,14 @@ import org.springframework.util.ClassUtils;
  * @see CommonAnnotationBeanPostProcessor
  * @see org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor
  * @see org.springframework.orm.jpa.support.PersistenceAnnotationBeanPostProcessor
+ *
+ *
+ * 作用：当用注解的方式启动项目时，将处理这些注解的基础设施类放到DefaultListableBeanFactory当中，因为无论如何，
+ * 		终归要有一些写死的基础类，来处理我们自己的xml中的配置类，或者我们自己的注解类，比如controller，service什么的，
+ * 		registerAnnotationConfigProcessors方法就是做这件事的，将spring写死的那几个基础设施类封装成BeanDefinition放到容器当中
+ *
+ * 时机：调用registerAnnotationConfigProcessors方法是在创建AnnotatedBeanDefinitionReader的时候，也就是在AnnotatedBeanDefinitionReader
+ * 		的构造方法中，这个构造方法会调用registerAnnotationConfigProcessors方法
  */
 public abstract class AnnotationConfigUtils {
 

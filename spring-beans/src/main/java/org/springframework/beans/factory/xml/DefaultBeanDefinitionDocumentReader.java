@@ -93,6 +93,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	@Override
 	public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
 		this.readerContext = readerContext;
+		//获取xml的根元素<beans>， //注册BeanDefinition
 		doRegisterBeanDefinitions(doc.getDocumentElement());
 	}
 
@@ -140,6 +141,8 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
 				// We cannot use Profiles.of(...) since profile expressions are not supported
 				// in XML config. See SPR-12458 for details.
+				//判断环境是否接受此profile数组，如果环境中不允许就直接返回，不再进行注册
+				//这就是为什么pfofile起作用的原因，和环境中的prfile不一致的配置，不会被Spring注册到容器中
 				if (!getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
@@ -162,8 +165,9 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 
 	protected BeanDefinitionParserDelegate createDelegate(
 			XmlReaderContext readerContext, Element root, @Nullable BeanDefinitionParserDelegate parentDelegate) {
-
+		//目前createHelper返回的值都是null
 		BeanDefinitionParserDelegate delegate = new BeanDefinitionParserDelegate(readerContext);
+		//初始化，并通过readerContext分发一个开始注册BeanDefinition的事件
 		delegate.initDefaults(root, parentDelegate);
 		return delegate;
 	}
@@ -175,13 +179,21 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * 使用Spring的Bean规则从Document的根元素开始进行Bean定义的Document对象
 	 */
 	protected void parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
-		//Bean定义的Document对象使用了Spring默认的XML命名空间
+		//Bean定义的Document对象使用了Spring默认的XML命名空间，判断root的xlmns是不是默认的名称空间，即"http://www.springframework.org/schema/beans"
 		if (delegate.isDefaultNamespace(root)) {
 			//获取Bean定义的Document对象根元素的所有子节点
 			NodeList nl = root.getChildNodes();
 			for (int i = 0; i < nl.getLength(); i++) {
 				Node node = nl.item(i);
 				//获得Document节点是XML元素节点
+				//如果节点是Element的话，这里主要是为了去除xml中无用的Text空节点
+				//比如:__<A>a</A>__<B></B>__ 是有5个Node的
+				//分别是：
+				//1. 空白Text节点
+				//2. <A>节点
+				//3. 空白Text节点
+				//4. <B>节点
+				//5. 空白Text节点
 				if (node instanceof Element) {
 					Element ele = (Element) node;
 					//Bean定义的Document的元素节点使用的是Spring默认的XML命名空间
@@ -340,6 +352,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			try {
 				// Register the final decorated instance.
 				//向Spring IOC容器注册解析得到的Bean定义，这是Bean定义向IOC容器注册的入口,执行注册
+				// TODO: 向IOC中注册该BeanDefiniton
 				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
 			}
 			catch (BeanDefinitionStoreException ex) {
@@ -347,7 +360,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 						bdHolder.getBeanName() + "'", ele, ex);
 			}
 			// Send registration event.
-			//在完成向Spring IOC容器注册解析得到的Bean定义之后，发送注册事件
+			//在完成向Spring IOC容器注册解析得到的Bean定义之后，发送注册事件,发送一个BeanDefinition注册事件
 			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
 		}
 	}
